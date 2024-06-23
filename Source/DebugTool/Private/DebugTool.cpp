@@ -7,6 +7,7 @@
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Text/STextBlock.h"
 #include "ToolMenus.h"
+#include "DebugTool/DT_Logger.h"
 
 static const FName DebugToolTabName("DebugTool");
 
@@ -14,6 +15,13 @@ static const FName DebugToolTabName("DebugTool");
 
 void FDebugToolModule::StartupModule()
 {
+    if(UDT_Logger::Singleton)
+    {
+        UE_LOG(LogTemp, Error, TEXT("UDT_Logger::Singleton must be nullptr there"));
+        return;
+    }
+    UDT_Logger::Singleton = NewObject<UDT_Logger>();
+
 	FDebugToolStyle::Initialize();
 	FDebugToolStyle::ReloadTextures();
 
