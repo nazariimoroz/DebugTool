@@ -25,7 +25,7 @@ public class DebugTool : ModuleRules
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
-				"Core",
+				"Core"
 			}
 			);
 
@@ -42,6 +42,11 @@ public class DebugTool : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
+				"EditorScriptingUtilities",
+				"Blutility",
+				"UMGEditor",
+				"UMG",
+				"CommonUI"
 			}
 			);
 

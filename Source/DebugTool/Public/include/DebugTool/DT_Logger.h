@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Logging/StructuredLog.h"
 #include "UObject/Object.h"
+#include "functional"
 #include "DT_Logger.generated.h"
 
 #define TO_STR(TO_CONV) #TO_CONV
@@ -75,6 +76,11 @@ public:
     }
 
     void Breakpoint(const FString& FilePath, const uint64 Line);
+
+public:
+#pragma region Delegates
+    std::function<void(ELogVerbosity::Type /*LogVerbosity*/, FString /*Message*/)> OnAddLogDelegate;
+#pragma endregion
 
 };
 

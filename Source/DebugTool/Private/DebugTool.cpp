@@ -3,6 +3,9 @@
 #include "DebugTool.h"
 #include "DebugToolStyle.h"
 #include "DebugToolCommands.h"
+#include "EditorAssetLibrary.h"
+#include "EditorUtilitySubsystem.h"
+#include "EditorUtilityWidgetBlueprint.h"
 #include "Widgets/Docking/SDockTab.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Text/STextBlock.h"
@@ -15,12 +18,15 @@ static const FName DebugToolTabName("DebugTool");
 
 void FDebugToolModule::StartupModule()
 {
-    if(UDT_Logger::Singleton)
+    AsyncTask(ENamedThreads::GameThread, []
     {
-        UE_LOG(LogTemp, Error, TEXT("UDT_Logger::Singleton must be nullptr there"));
-        return;
-    }
-    UDT_Logger::Singleton = NewObject<UDT_Logger>();
+        if(UDT_Logger::Singleton)
+        {
+            UE_LOG(LogTemp, Error, TEXT("UDT_Logger::Singleton must be nullptr there"));
+            return;
+        }
+        UDT_Logger::Singleton = NewObject<UDT_Logger>();
+    });
 
 	FDebugToolStyle::Initialize();
 	FDebugToolStyle::ReloadTextures();
@@ -56,23 +62,28 @@ void FDebugToolModule::ShutdownModule()
 
 TSharedRef<SDockTab> FDebugToolModule::OnSpawnPluginTab(const FSpawnTabArgs& SpawnTabArgs)
 {
-	FText WidgetText = FText::Format(
-		LOCTEXT("WindowWidgetText", "Add code to {0} in {1} to override this window's contents"),
-		FText::FromString(TEXT("FDebugToolModule::OnSpawnPluginTab")),
-		FText::FromString(TEXT("DebugTool.cpp"))
-		);
+    UObject* Blueprint = UEditorAssetLibrary::LoadAsset(FString(TEXT("EditorUtilityWidgetBlueprint'/DebugTool/EUW_Logger.EUW_Logger'")));
+    if (Blueprint)
+    {
+        UEditorUtilityWidgetBlueprint* EditorWidgetBlueprint = Cast<UEditorUtilityWidgetBlueprint>(Blueprint);
+        if (EditorWidgetBlueprint)
+        {
+            UEditorUtilitySubsystem* EditorUtilitySubsystem = GEditor->GetEditorSubsystem<UEditorUtilitySubsystem>();
+            if (EditorUtilitySubsystem)
+            {
+                FName ID;
+                UEditorUtilityWidget* EditorWidget = EditorUtilitySubsystem->SpawnAndRegisterTabAndGetID(EditorWidgetBlueprint, ID);
 
-	return SNew(SDockTab)
-		.TabRole(ETabRole::NomadTab)
-		[
-			SNew(SBox)
-			.HAlign(HAlign_Center)
-			.VAlign(VAlign_Center)
-			[
-				SNew(STextBlock)
-				.Text(WidgetText)
-			]
-		];
+                if (EditorWidget)
+                {
+                    auto DockTab = SNew(SDockTab).TabRole(ETabRole::NomadTab)[EditorWidget->TakeWidget()];
+                    EditorUtilitySubsystem->CloseTabByID(ID);
+                    return DockTab;
+                }
+            }
+        }
+    }
+    return SNew(SDockTab);
 }
 
 void FDebugToolModule::PluginButtonClicked()

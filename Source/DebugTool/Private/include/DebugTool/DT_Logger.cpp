@@ -31,8 +31,7 @@ void UDT_Logger::WriteLine(const ELogVerbosity::Type LogVerbosity, const FString
 
     const auto Final = FString::Printf(TEXT("%s(%" PRIu64 "): %s"), *FileName, Line, *Str);
 
-    // TODO
-    UE_LOG(LogTemp, Warning, TEXT("%s"), *Final);
+    OnAddLogDelegate(LogVerbosity, Final);
 }
 
 void UDT_Logger::Breakpoint(const FString& FilePath, const uint64 Line)
