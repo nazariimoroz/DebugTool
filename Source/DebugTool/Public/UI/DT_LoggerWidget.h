@@ -16,8 +16,10 @@ class DEBUGTOOL_API UDT_LoggerWidget : public UEditorUtilityWidget
 
 protected:
     virtual bool Initialize() override;
+    virtual void BeginDestroy() override;
 
 public:
+
     void AddLog(UDT_LogElementInfo* const LogElementInfo);
     void AddLog(ELogVerbosity::Type LogVerbosity, const FText& Message);
 

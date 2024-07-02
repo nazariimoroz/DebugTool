@@ -11,18 +11,29 @@ bool UDT_LoggerWidget::Initialize()
 {
     bool bToRet = Super::Initialize();
 
-    AsyncTask(ENamedThreads::GameThread, [this]
+    if(const auto Logger = UDT_Logger::Get())
     {
-        if(const auto Logger = UDT_Logger::Get())
+        Logger->OnAddLogDelegate = [this](ELogVerbosity::Type LogVerbosity, FString String)
         {
-            Logger->OnAddLogDelegate = [this](ELogVerbosity::Type LogVerbosity, FString String)
-            {
-                this->AddLog(LogVerbosity, FText::FromString(String));
-            };
-        }
-    });
+            this->AddLog(LogVerbosity, FText::FromString(String));
+        };
+    }
+    else
+        bToRet = false;
 
     return bToRet;
+}
+
+void UDT_LoggerWidget::BeginDestroy()
+{
+    if(const auto Logger = UDT_Logger::Get())
+    {
+        Logger->OnAddLogDelegate = nullptr;
+    }
+    else
+        UE_LOG(LogTemp, Warning, TEXT("Cant get Logger on Destroying"));
+
+    Super::BeginDestroy();
 }
 
 void UDT_LoggerWidget::AddLog(UDT_LogElementInfo* const LogElementInfo)
@@ -32,11 +43,10 @@ void UDT_LoggerWidget::AddLog(UDT_LogElementInfo* const LogElementInfo)
 
 void UDT_LoggerWidget::AddLog(const ELogVerbosity::Type LogVerbosity, const FText& Message)
 {
-    UE_LOG(LogTemp, Warning, TEXT("WORK???"));
     UDT_LogElementInfo* LogElementInfo = NewObject<UDT_LogElementInfo>();
     LogElementInfo->LogVerbosity = LogVerbosity;
     LogElementInfo->LogText = Message;
-    LoggerView->AddItem(LogElementInfo);
+    AddLog(LogElementInfo);
 }
 
 void UDT_LoggerWidget::AddLogCallback(ELogVerbosity::Type LogVerbosity, FString Message)

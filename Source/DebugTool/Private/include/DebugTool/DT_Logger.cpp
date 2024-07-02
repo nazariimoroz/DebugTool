@@ -31,7 +31,7 @@ void UDT_Logger::WriteLine(const ELogVerbosity::Type LogVerbosity, const FString
 
     const auto Final = FString::Printf(TEXT("%s(%" PRIu64 "): %s"), *FileName, Line, *Str);
 
-    OnAddLogDelegate(LogVerbosity, Final);
+    if(OnAddLogDelegate) OnAddLogDelegate(LogVerbosity, Final);
 }
 
 void UDT_Logger::Breakpoint(const FString& FilePath, const uint64 Line)
