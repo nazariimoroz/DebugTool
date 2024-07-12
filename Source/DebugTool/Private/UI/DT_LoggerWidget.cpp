@@ -4,7 +4,7 @@
 #include "UI/DT_LoggerWidget.h"
 
 #include "CommonListView.h"
-#include "DT_LogElementInfo.h"
+#include "DebugTool/DT_LogElementInfo.h"
 #include "DebugTool/DT_Logger.h"
 #include "UI/DT_LogElement.h"
 

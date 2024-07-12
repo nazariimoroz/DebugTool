@@ -6,6 +6,8 @@
 #include "UObject/Object.h"
 #include "DT_LogElementInfo.generated.h"
 
+struct FDT_LogElement;
+
 UCLASS(Blueprintable, BlueprintType)
 class UDT_LogElementInfo : public UObject
 {
@@ -17,5 +19,7 @@ public:
 
     UPROPERTY(BlueprintReadWrite, EditAnywhere)
     FText LogText;
+
+    static UDT_LogElementInfo* Create(const FDT_LogElement& LogElement);
 };
 

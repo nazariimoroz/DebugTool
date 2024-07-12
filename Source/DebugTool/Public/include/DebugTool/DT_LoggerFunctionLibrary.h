@@ -4,13 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
-#include "LoggerFunctionLibrary.generated.h"
+#include "DT_LoggerFunctionLibrary.generated.h"
 
 class UDT_LogElementInfo;
 class UDT_Logger;
 
 UCLASS()
-class DEBUGTOOL_API ULoggerFunctionLibrary : public UBlueprintFunctionLibrary
+class DEBUGTOOL_API UDT_LoggerFunctionLibrary : public UBlueprintFunctionLibrary
 {
     GENERATED_BODY()
 
