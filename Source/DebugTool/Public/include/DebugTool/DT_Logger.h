@@ -4,9 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "Logging/StructuredLog.h"
-#include "UObject/Object.h"
-#include "functional"
-#include "DT_Logger.generated.h"
 
 #define TO_STR(TO_CONV) #TO_CONV
 #define TO_STR_COV(TO_CONV) TO_STR(TO_CONV)
@@ -29,17 +26,9 @@
 
 class FDebugToolModule;
 
-
-USTRUCT(BlueprintType)
-struct FLogElement
+struct FDT_LogElement
 {
-    GENERATED_BODY()
-
-public:
-    UPROPERTY(BlueprintReadWrite)
     FText LogText;
-
-    UPROPERTY(BlueprintReadWrite)
     FLinearColor LogVerbosityColor;
 
     void SetLogVerbosity(const ELogVerbosity::Type InLogVerbosity)
@@ -59,15 +48,14 @@ public:
         }
     }
 
+    ELogVerbosity::Type GetLogVerbosity() const { return LogVerbosity; }
+
 private:
     ELogVerbosity::Type LogVerbosity = ELogVerbosity::Display;
 };
 
-UCLASS()
-class DEBUGTOOL_API UDT_Logger : public UObject
+class DEBUGTOOL_API UDT_Logger
 {
-    GENERATED_BODY()
-
     friend FDebugToolModule;
 
 #pragma region Singleton
@@ -111,19 +99,14 @@ public:
 
     void Breakpoint(const FString& FilePath, const uint64 Line);
 
-    TArray<FLogElement> GetLastLogsInGame(int32 Count = 10);
+    TArray<FDT_LogElement> GetLastLogsInGame(int32 Count = -1) const;
 
 public:
 #pragma region Delegates
     bool bUseDelegates = false;
 
-    std::function<void(ELogVerbosity::Type /*LogVerbosity*/, FString /*Message*/)> OnAddLogDelegate;
-    std::function<void(ELogVerbosity::Type /*LogVerbosity*/, FString /*Message*/)> OnAddLogInGameDelegate;
-#pragma endregion
-
-#pragma region Callbacks
-    void OnWorldAddadCallback(UWorld* World);
-    void OnWorldDestroyedCallback(UWorld* World);
+    TFunction<void(FDT_LogElement)> OnAddLogDelegate;
+    TFunction<void(FDT_LogElement)> OnAddLogInGameDelegate;
 #pragma endregion
 
 protected:
@@ -133,7 +116,7 @@ protected:
     int WorldCount = 0;
     bool bInited = false;
 
-    TDoubleLinkedList<FLogElement> LoggerListInGame;
-    TDoubleLinkedList<FLogElement> LoggerList;
+    TDoubleLinkedList<FDT_LogElement> LoggerListInGame;
+    TDoubleLinkedList<FDT_LogElement> LoggerList;
 };
 

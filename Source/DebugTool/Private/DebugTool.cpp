@@ -18,46 +18,46 @@ static const FName DebugToolTabName("DebugTool");
 
 void FDebugToolModule::StartupModule()
 {
-    AsyncTask(ENamedThreads::GameThread, []
+    if (UDT_Logger::Singleton)
     {
-        if(UDT_Logger::Singleton)
-        {
-            UE_LOG(LogTemp, Error, TEXT("UDT_Logger::Singleton must be nullptr there"));
-            return;
-        }
-        UDT_Logger::Singleton = NewObject<UDT_Logger>();
-    });
+        UE_LOG(LogTemp, Error, TEXT("UDT_Logger::Singleton must be nullptr there"));
+        return;
+    }
+    UDT_Logger::Singleton = new UDT_Logger();
 
-	FDebugToolStyle::Initialize();
-	FDebugToolStyle::ReloadTextures();
+    FDebugToolStyle::Initialize();
+    FDebugToolStyle::ReloadTextures();
 
-	FDebugToolCommands::Register();
-	
-	PluginCommands = MakeShareable(new FUICommandList);
+    FDebugToolCommands::Register();
 
-	PluginCommands->MapAction(
-		FDebugToolCommands::Get().OpenPluginWindow,
-		FExecuteAction::CreateRaw(this, &FDebugToolModule::PluginButtonClicked),
-		FCanExecuteAction());
+    PluginCommands = MakeShareable(new FUICommandList);
 
-	UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FDebugToolModule::RegisterMenus));
-	
-	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(DebugToolTabName, FOnSpawnTab::CreateRaw(this, &FDebugToolModule::OnSpawnPluginTab))
-		.SetDisplayName(LOCTEXT("FDebugToolTabTitle", "DebugTool"))
-		.SetMenuType(ETabSpawnerMenuType::Hidden);
+    PluginCommands->MapAction(
+        FDebugToolCommands::Get().OpenPluginWindow,
+        FExecuteAction::CreateRaw(this, &FDebugToolModule::PluginButtonClicked),
+        FCanExecuteAction());
+
+    UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FDebugToolModule::RegisterMenus));
+
+    FGlobalTabmanager::Get()->RegisterNomadTabSpawner(DebugToolTabName, FOnSpawnTab::CreateRaw(this, &FDebugToolModule::OnSpawnPluginTab))
+                            .SetDisplayName(LOCTEXT("FDebugToolTabTitle", "DebugTool"))
+                            .SetMenuType(ETabSpawnerMenuType::Hidden);
 }
 
 void FDebugToolModule::ShutdownModule()
 {
-	UToolMenus::UnRegisterStartupCallback(this);
+    delete UDT_Logger::Singleton;
+    UDT_Logger::Singleton = nullptr;
 
-	UToolMenus::UnregisterOwner(this);
+    UToolMenus::UnRegisterStartupCallback(this);
 
-	FDebugToolStyle::Shutdown();
+    UToolMenus::UnregisterOwner(this);
 
-	FDebugToolCommands::Unregister();
+    FDebugToolStyle::Shutdown();
 
-	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(DebugToolTabName);
+    FDebugToolCommands::Unregister();
+
+    FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(DebugToolTabName);
 }
 
 TSharedRef<SDockTab> FDebugToolModule::OnSpawnPluginTab(const FSpawnTabArgs& SpawnTabArgs)
@@ -88,25 +88,25 @@ TSharedRef<SDockTab> FDebugToolModule::OnSpawnPluginTab(const FSpawnTabArgs& Spa
 
 void FDebugToolModule::PluginButtonClicked()
 {
-	FGlobalTabmanager::Get()->TryInvokeTab(DebugToolTabName);
+    FGlobalTabmanager::Get()->TryInvokeTab(DebugToolTabName);
 }
 
 void FDebugToolModule::RegisterMenus()
 {
-	FToolMenuOwnerScoped OwnerScoped(this);
+    FToolMenuOwnerScoped OwnerScoped(this);
 
-	{
-		UToolMenu* ToolbarMenu = UToolMenus::Get()->ExtendMenu("LevelEditor.LevelEditorToolBar.SettingsToolbar");
-		{
-		    FToolMenuSection& Section = ToolbarMenu->FindOrAddSection("Debug");
-		    {
-		        FToolMenuEntry& Entry = Section.AddEntry(FToolMenuEntry::InitToolBarButton(FDebugToolCommands::Get().OpenPluginWindow));
-		        Entry.SetCommandList(PluginCommands);
-		    }
-		}
-	}
+    {
+        UToolMenu* ToolbarMenu = UToolMenus::Get()->ExtendMenu("LevelEditor.LevelEditorToolBar.SettingsToolbar");
+        {
+            FToolMenuSection& Section = ToolbarMenu->FindOrAddSection("Debug");
+            {
+                FToolMenuEntry& Entry = Section.AddEntry(FToolMenuEntry::InitToolBarButton(FDebugToolCommands::Get().OpenPluginWindow));
+                Entry.SetCommandList(PluginCommands);
+            }
+        }
+    }
 }
 
 #undef LOCTEXT_NAMESPACE
-	
+
 IMPLEMENT_MODULE(FDebugToolModule, DebugTool)

@@ -6,6 +6,7 @@
 #include "EditorUtilityWidget.h"
 #include "DT_LoggerWidget.generated.h"
 
+struct FDT_LogElement;
 class UDT_LogElementInfo;
 class UCommonListView;
 
@@ -19,16 +20,10 @@ protected:
     virtual void BeginDestroy() override;
 
 public:
-
     void AddLog(UDT_LogElementInfo* const LogElementInfo);
-    void AddLog(ELogVerbosity::Type LogVerbosity, const FText& Message);
+    void AddLog(const FDT_LogElement& LogElement);
 
 public:
     UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (BindWidget))
     TObjectPtr<UCommonListView> LoggerView;
-
-protected:
-#pragma region Callbacks
-    void AddLogCallback(ELogVerbosity::Type LogVerbosity, FString Message);
-#pragma endregion
 };

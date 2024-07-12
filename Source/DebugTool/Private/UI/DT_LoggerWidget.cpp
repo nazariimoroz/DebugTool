@@ -4,6 +4,7 @@
 #include "UI/DT_LoggerWidget.h"
 
 #include "CommonListView.h"
+#include "DT_LogElementInfo.h"
 #include "DebugTool/DT_Logger.h"
 #include "UI/DT_LogElement.h"
 
@@ -13,10 +14,9 @@ bool UDT_LoggerWidget::Initialize()
 
     if(const auto Logger = UDT_Logger::Get())
     {
-        Logger->OnAddLogDelegate = nullptr;
-        Logger->OnAddLogDelegate = [this](ELogVerbosity::Type LogVerbosity, FString String)
+        Logger->OnAddLogDelegate = [this](FDT_LogElement LogElement)
         {
-            this->AddLog(LogVerbosity, FText::FromString(String));
+            AddLog(LogElement);
         };
     }
     else
@@ -42,15 +42,10 @@ void UDT_LoggerWidget::AddLog(UDT_LogElementInfo* const LogElementInfo)
     LoggerView->AddItem(LogElementInfo);
 }
 
-void UDT_LoggerWidget::AddLog(const ELogVerbosity::Type LogVerbosity, const FText& Message)
+void UDT_LoggerWidget::AddLog(const FDT_LogElement& LogElement)
 {
     UDT_LogElementInfo* LogElementInfo = NewObject<UDT_LogElementInfo>();
-    LogElementInfo->LogVerbosity = LogVerbosity;
-    LogElementInfo->LogText = Message;
+    LogElementInfo->LogVerbosityColor = LogElement.LogVerbosityColor;
+    LogElementInfo->LogText = LogElement.LogText;
     AddLog(LogElementInfo);
-}
-
-void UDT_LoggerWidget::AddLogCallback(ELogVerbosity::Type LogVerbosity, FString Message)
-{
-    AddLog(LogVerbosity, FText::FromString(Message));
 }
