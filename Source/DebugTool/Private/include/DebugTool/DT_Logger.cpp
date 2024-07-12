@@ -45,13 +45,13 @@ void UDT_Logger::WriteLine(const ELogVerbosity::Type LogVerbosity, const FString
     LogElement.SetLogVerbosity(LogVerbosity);
 
     if (bUseDelegates && OnAddLogDelegate) OnAddLogDelegate(LogElement);
-    LoggerList.InsertNode(LogElement);
+    LoggerList.AddTail(LogElement);
 
     if (GEngine && GEngine->GetCurrentPlayWorld())
     {
         if (bUseDelegates && OnAddLogInGameDelegate) OnAddLogInGameDelegate(LogElement);
 
-        LoggerListInGame.InsertNode(LogElement);
+        LoggerListInGame.AddTail(LogElement);
     }
 }
 
