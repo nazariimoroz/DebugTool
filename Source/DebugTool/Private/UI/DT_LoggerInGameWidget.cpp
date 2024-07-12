@@ -40,7 +40,7 @@ void UDT_LoggerInGameWidget::BeginDestroy()
 
 void UDT_LoggerInGameWidget::AddLog(UDT_LogElementInfo* const LogElementInfo)
 {
-    DT_RETURN(LoggerView);
+    DT_RETURN_NO_LOGGER(LoggerView);
 
     if(State == EDT_LoggerInGameWidgetState::Logger)
         LoggerView->AddItem(LogElementInfo);
@@ -49,7 +49,7 @@ void UDT_LoggerInGameWidget::AddLog(UDT_LogElementInfo* const LogElementInfo)
 void UDT_LoggerInGameWidget::AddLog(const FDT_LogElement& LogElement)
 {
     UDT_LogElementInfo* LogElementInfo = NewObject<UDT_LogElementInfo>();
-    DT_RETURN(LogElementInfo);
+    DT_RETURN_NO_LOGGER(LogElementInfo);
     LogElementInfo->LogVerbosityColor = LogElement.LogVerbosityColor;
     LogElementInfo->LogText = LogElement.LogText;
     AddLog(LogElementInfo);
