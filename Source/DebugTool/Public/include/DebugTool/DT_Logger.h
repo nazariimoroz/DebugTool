@@ -29,6 +29,40 @@
 
 class FDebugToolModule;
 
+
+USTRUCT(BlueprintType)
+struct FLogElement
+{
+    GENERATED_BODY()
+
+public:
+    UPROPERTY(BlueprintReadWrite)
+    FText LogText;
+
+    UPROPERTY(BlueprintReadWrite)
+    FLinearColor LogVerbosityColor;
+
+    void SetLogVerbosity(const ELogVerbosity::Type InLogVerbosity)
+    {
+        LogVerbosity = InLogVerbosity;
+        switch (LogVerbosity)
+        {
+            case ELogVerbosity::Display:
+                LogVerbosityColor = FLinearColor::White;
+            break;
+            case ELogVerbosity::Error:
+                LogVerbosityColor = FLinearColor::Red;
+            break;
+            default:
+                LogVerbosityColor = FLinearColor::Transparent;
+            break;
+        }
+    }
+
+private:
+    ELogVerbosity::Type LogVerbosity = ELogVerbosity::Display;
+};
+
 UCLASS()
 class DEBUGTOOL_API UDT_Logger : public UObject
 {
@@ -77,10 +111,29 @@ public:
 
     void Breakpoint(const FString& FilePath, const uint64 Line);
 
+    TArray<FLogElement> GetLastLogsInGame(int32 Count = 10);
+
 public:
 #pragma region Delegates
+    bool bUseDelegates = false;
+
     std::function<void(ELogVerbosity::Type /*LogVerbosity*/, FString /*Message*/)> OnAddLogDelegate;
+    std::function<void(ELogVerbosity::Type /*LogVerbosity*/, FString /*Message*/)> OnAddLogInGameDelegate;
 #pragma endregion
 
+#pragma region Callbacks
+    void OnWorldAddadCallback(UWorld* World);
+    void OnWorldDestroyedCallback(UWorld* World);
+#pragma endregion
+
+protected:
+    bool InGame() const { return WorldCount != 0; }
+
+protected:
+    int WorldCount = 0;
+    bool bInited = false;
+
+    TDoubleLinkedList<FLogElement> LoggerListInGame;
+    TDoubleLinkedList<FLogElement> LoggerList;
 };
 

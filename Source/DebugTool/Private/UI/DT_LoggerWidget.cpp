@@ -13,6 +13,7 @@ bool UDT_LoggerWidget::Initialize()
 
     if(const auto Logger = UDT_Logger::Get())
     {
+        Logger->OnAddLogDelegate = nullptr;
         Logger->OnAddLogDelegate = [this](ELogVerbosity::Type LogVerbosity, FString String)
         {
             this->AddLog(LogVerbosity, FText::FromString(String));
