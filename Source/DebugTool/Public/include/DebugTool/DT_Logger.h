@@ -23,6 +23,15 @@
     if(const auto Logger = UDT_Logger::Get()) Logger->Breakpoint(__FILE__, __LINE__);           \
     } while(false)
 
+#define DT_RETURN_A(Expression, TO_RET) do {        \
+    if(!(Expression))                               \
+    {                                               \
+        DT_ERROR("{}", #Expression);                \
+        return TO_RET;                              \
+    }                                               \
+    } while(false)
+
+#define DT_RETURN(Expression) DT_RETURN_A(Expression, )
 
 class FDebugToolModule;
 

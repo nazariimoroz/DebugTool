@@ -4,12 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "DT_LogElement.generated.h"
+#include "DT_LogElementWidget.generated.h"
 
 class UTextBlock;
 
 UCLASS()
-class DEBUGTOOL_API UDT_LogElement
+class DEBUGTOOL_API UDT_LogElementWidget
     : public UUserWidget
 {
     GENERATED_BODY()
