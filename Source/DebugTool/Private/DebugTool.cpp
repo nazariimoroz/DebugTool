@@ -11,6 +11,7 @@
 #include "Widgets/Text/STextBlock.h"
 #include "ToolMenus.h"
 #include "DebugTool/DT_Logger.h"
+#include "DebugTool/DT_Observer.h"
 
 static const FName DebugToolTabName("DebugTool");
 
@@ -18,6 +19,11 @@ static const FName DebugToolTabName("DebugTool");
 
 void FDebugToolModule::StartupModule()
 {
+    FDebugToolStyle::Initialize();
+    FDebugToolStyle::ReloadTextures();
+
+    FDebugToolCommands::Register();
+
     if (UDT_Logger::Singleton)
     {
         UE_LOG(LogTemp, Error, TEXT("UDT_Logger::Singleton must be nullptr there"));
@@ -25,10 +31,12 @@ void FDebugToolModule::StartupModule()
     }
     UDT_Logger::Singleton = new UDT_Logger();
 
-    FDebugToolStyle::Initialize();
-    FDebugToolStyle::ReloadTextures();
-
-    FDebugToolCommands::Register();
+    if(UDT_Observer::Singleton)
+    {
+        UE_LOG(LogTemp, Error, TEXT("UDT_Observer::Singleton must be nullptr there"));
+        return;
+    }
+    UDT_Observer::Singleton = new UDT_Observer();
 
     PluginCommands = MakeShareable(new FUICommandList);
 
@@ -48,6 +56,8 @@ void FDebugToolModule::ShutdownModule()
 {
     delete UDT_Logger::Singleton;
     UDT_Logger::Singleton = nullptr;
+    delete UDT_Observer::Singleton;
+    UDT_Observer::Singleton = nullptr;
 
     UToolMenus::UnRegisterStartupCallback(this);
 
