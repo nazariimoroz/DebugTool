@@ -10,24 +10,20 @@ UDT_Observer* UDT_Observer::Singleton = nullptr;
 
 UDT_Observer::UDT_Observer()
 {
-    DT_RETURN_NO_LOGGER(GEngine);
+    OnPostWorldInitializationCallbackHandle
+        = FWorldDelegates::OnPostWorldInitialization.AddRaw(
+            this, &UDT_Observer::OnPostWorldInitializationCallback);
 
-    OnBeginPieCallbackHandle = FEditorDelegates::BeginPIE.AddRaw(this, &UDT_Observer::OnBeginPieCallback);
-    OnWorldAddedCallbackHandle = GEngine->OnWorldAdded().AddRaw(this, &UDT_Observer::OnWorldAddedCallback);
-    OnWorldDestroyedCallbackHandle = GEngine->OnWorldDestroyed().AddRaw(this, &UDT_Observer::OnWorldDestroyedCallback);
-
-    FWorldDelegates::OnPostWorldInitialization.AddRaw(this, &UDT_Observer::OnPostWorldInitializationCallback);
+    OnPreWorldFinishDestroyCallbackHandle =
+    FWorldDelegates::OnPreWorldFinishDestroy.AddRaw(
+            this, &UDT_Observer::OnPreWorldFinishDestroyCallback);
 
     bInited = true;
 }
 
 UDT_Observer::~UDT_Observer()
 {
-    DT_RETURN_NO_LOGGER(GEngine);
-
-    FEditorDelegates::BeginPIE.Remove(OnBeginPieCallbackHandle);
-    GEngine->OnWorldAdded().Remove(OnWorldAddedCallbackHandle);
-    GEngine->OnWorldDestroyed().Remove(OnWorldDestroyedCallbackHandle);
+    FWorldDelegates::OnPostWorldInitialization.Remove(OnPostWorldInitializationCallbackHandle);
 }
 
 void UDT_Observer::AddObservationProperty(UClass* ObservationClass, FName PropertyName)
@@ -55,17 +51,43 @@ void UDT_Observer::AddObservationProperty(UClass* ObservationClass, FName Proper
     Info->Properties.Add(Property);
 }
 
+void UDT_Observer::CleanUp()
+{
+    if (CurrentWorld)
+    {
+        if (OnActorSpawnedCallbackHandle.IsValid())
+            CurrentWorld->RemoveOnActorSpawnedHandler(OnActorSpawnedCallbackHandle);
+
+        if (OnActorDestroyedCallbackHandle.IsValid())
+            CurrentWorld->RemoveOnActorDestroyededHandler(OnActorDestroyedCallbackHandle);
+
+        CurrentWorld = nullptr;
+    }
+
+    for (auto& [ObsClass, Info] : ObservationInfo)
+    {
+        Info->CurrentAvailableActors.Reset();
+    }
+}
+
 void UDT_Observer::OnPostWorldInitializationCallback(UWorld* World, FWorldInitializationValues WorldInitializationValues)
 {
-    if(!GEditor->IsPlaySessionInProgress()) return;
+    if (!GEditor->IsPlaySessionInProgress()) return;
+
+    if(CurrentWorld)
+        CleanUp();
+
     CurrentWorld = World;
 
     if (CurrentWorld)
     {
-        CurrentWorld->AddOnActorSpawnedHandler(
-            FOnActorSpawned::FDelegate::CreateRaw(this, &UDT_Observer::OnActorSpawnedCallback));
-        CurrentWorld->AddOnActorDestroyedHandler(
-            FOnActorSpawned::FDelegate::CreateRaw(this, &UDT_Observer::OnActorDestroyedCallback));
+        OnActorSpawnedCallbackHandle =
+            CurrentWorld->AddOnActorSpawnedHandler(
+                FOnActorSpawned::FDelegate::CreateRaw(this, &UDT_Observer::OnActorSpawnedCallback));
+
+        OnActorDestroyedCallbackHandle =
+            CurrentWorld->AddOnActorDestroyedHandler(
+                FOnActorSpawned::FDelegate::CreateRaw(this, &UDT_Observer::OnActorDestroyedCallback));
 
         if (GEditor->IsPlaySessionInProgress())
         {
@@ -77,12 +99,25 @@ void UDT_Observer::OnPostWorldInitializationCallback(UWorld* World, FWorldInitia
     }
 }
 
+void UDT_Observer::OnPreWorldFinishDestroyCallback(UWorld* World)
+{
+    if(CurrentWorld == World)
+        CleanUp();
+}
+
 void UDT_Observer::OnActorSpawnedCallback(AActor* Actor)
 {
     if (const auto InfoPtr = ObservationInfo.Find(Actor->GetClass()))
     {
         const auto Info = *InfoPtr;
-        DT_DISPLAY_NO_LOGGER("Actor spawned {0}", Actor->GetName());
+        for (auto Property : Info->Properties)
+        {
+            if(const auto IntProp = CastField<FIntProperty>(Property))
+            {
+                const auto Value = IntProp->ContainerPtrToValuePtr<int32>(Actor);
+                DT_ERROR_NO_LOGGER("Value {0}", *Value);
+            }
+        }
     }
 }
 

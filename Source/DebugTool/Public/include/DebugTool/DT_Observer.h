@@ -38,20 +38,24 @@ protected:
 public:
     void AddObservationProperty(UClass* ObservationClass, FName PropertyName);
 
+protected:
+    void CleanUp();
+
 private:
     bool bInited = false;
 
     UWorld* CurrentWorld = nullptr;
     TMap<UClass*, TSharedPtr<FObservationInfo>> ObservationInfo;
 
-    FDelegateHandle OnBeginPieCallbackHandle;
-    FDelegateHandle OnWorldAddedCallbackHandle;
-    FDelegateHandle OnWorldDestroyedCallbackHandle;
+    FDelegateHandle OnPostWorldInitializationCallbackHandle;
+    FDelegateHandle OnActorSpawnedCallbackHandle;
+    FDelegateHandle OnActorDestroyedCallbackHandle;
+    FDelegateHandle OnPreWorldFinishDestroyCallbackHandle;
 
 private:
 #pragma region Callbacks
-    void OnBeginPieCallback(bool bArg);
     void OnPostWorldInitializationCallback(UWorld* World, FWorldInitializationValues WorldInitializationValues);
+    void OnPreWorldFinishDestroyCallback(UWorld* World);
 
     void OnActorSpawnedCallback(AActor* Actor);
     void OnActorDestroyedCallback(AActor* Actor);
