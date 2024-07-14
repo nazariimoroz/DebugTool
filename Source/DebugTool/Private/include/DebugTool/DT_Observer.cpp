@@ -11,8 +11,10 @@ UDT_Observer::UDT_Observer()
 {
     UE_LOG(LogTemp, Warning, TEXT("Inited!!!"));
 
+    /*
     OnWorldAddedCallbackHandle = FWorldDelegates::OnWorldTickStart.AddRaw(this, &UDT_Observer::OnWorldAddedCallback);
     OnWorldDestroyedCallbackHandle = FWorldDelegates::OnWorldTickEnd.AddRaw(this, &UDT_Observer::OnWorldDestroyedCallback);
+    */
 
     bInited = true;
 }
@@ -48,14 +50,16 @@ void UDT_Observer::AddObservationProperty(UClass* ObservationClass, FName Proper
     Info->Properties.Add(Property);
 }
 
-void UDT_Observer::OnWorldAddedCallback(UWorld* World, ELevelTick LevelTick, float X)
+void UDT_Observer::OnWorldAddedCallback(ULevel* Level, UWorld* World)
 {
     UE_LOG(LogTemp, Warning, TEXT("Created!!!"));
-    CurrentWorld = World;
+    if(GEngine && GEngine->GetCurrentPlayWorld())
+        CurrentWorld = World;
 }
 
-void UDT_Observer::OnWorldDestroyedCallback(UWorld* World, ELevelTick LevelTick, float X)
+void UDT_Observer::OnWorldDestroyedCallback(ULevel* Level, UWorld* World)
 {
     UE_LOG(LogTemp, Warning, TEXT("Destroyed!!!"));
-    if (CurrentWorld == World) CurrentWorld = nullptr;
+    if (CurrentWorld == World)
+        CurrentWorld = nullptr;
 }
