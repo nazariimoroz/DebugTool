@@ -49,8 +49,8 @@ private:
 
 private:
 #pragma region Callbacks
-    void OnWorldAddedCallback(UWorld* World);
-    void OnWorldDestroyedCallback(UWorld* World);
+    void OnWorldAddedCallback(UWorld* World, ELevelTick LevelTick, float X);
+    void OnWorldDestroyedCallback(UWorld* World, ELevelTick LevelTick, float X);
 #pragma endregion
 
 };

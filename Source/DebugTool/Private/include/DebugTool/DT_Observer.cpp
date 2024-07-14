@@ -9,23 +9,18 @@ UDT_Observer* UDT_Observer::Singleton = nullptr;
 
 UDT_Observer::UDT_Observer()
 {
-    if (GEngine)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("Inited!!!"));
-        OnWorldAddedCallbackHandle = GEngine->OnWorldAdded().AddRaw(this, &UDT_Observer::OnWorldAddedCallback);
-        OnWorldDestroyedCallbackHandle =GEngine->OnWorldDestroyed().AddRaw(this, &UDT_Observer::OnWorldDestroyedCallback);
+    UE_LOG(LogTemp, Warning, TEXT("Inited!!!"));
 
-        bInited = true;
-    }
+    OnWorldAddedCallbackHandle = FWorldDelegates::OnWorldTickStart.AddRaw(this, &UDT_Observer::OnWorldAddedCallback);
+    OnWorldDestroyedCallbackHandle = FWorldDelegates::OnWorldTickEnd.AddRaw(this, &UDT_Observer::OnWorldDestroyedCallback);
+
+    bInited = true;
 }
 
 UDT_Observer::~UDT_Observer()
 {
-    if (GEngine)
-    {
-        GEngine->OnWorldAdded().Remove(OnWorldAddedCallbackHandle);
-        GEngine->OnWorldDestroyed().Remove(OnWorldDestroyedCallbackHandle);
-    }
+    FWorldDelegates::OnWorldTickStart.Remove(OnWorldAddedCallbackHandle);
+    FWorldDelegates::OnWorldTickEnd.Remove(OnWorldDestroyedCallbackHandle);
 }
 
 void UDT_Observer::AddObservationProperty(UClass* ObservationClass, FName PropertyName)
@@ -53,14 +48,14 @@ void UDT_Observer::AddObservationProperty(UClass* ObservationClass, FName Proper
     Info->Properties.Add(Property);
 }
 
-void UDT_Observer::OnWorldAddedCallback(UWorld* World)
+void UDT_Observer::OnWorldAddedCallback(UWorld* World, ELevelTick LevelTick, float X)
 {
     UE_LOG(LogTemp, Warning, TEXT("Created!!!"));
     CurrentWorld = World;
 }
 
-void UDT_Observer::OnWorldDestroyedCallback(UWorld* World)
+void UDT_Observer::OnWorldDestroyedCallback(UWorld* World, ELevelTick LevelTick, float X)
 {
-    UE_LOG(LogTemp, Warning, TEXT("Created!!!"));
+    UE_LOG(LogTemp, Warning, TEXT("Destroyed!!!"));
     if (CurrentWorld == World) CurrentWorld = nullptr;
 }

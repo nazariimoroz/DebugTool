@@ -23,7 +23,7 @@ void FDebugToolModule::StartupModule()
     FDebugToolStyle::ReloadTextures();
 
     FDebugToolCommands::Register();
-
+    
     if (UDT_Logger::Singleton)
     {
         UE_LOG(LogTemp, Error, TEXT("UDT_Logger::Singleton must be nullptr there"));
