@@ -17,13 +17,8 @@ static const FName DebugToolTabName("DebugTool");
 
 #define LOCTEXT_NAMESPACE "FDebugToolModule"
 
-void FDebugToolModule::StartupModule()
+void FDebugToolModule::OnEditorInitializedCallback(double X)
 {
-    FDebugToolStyle::Initialize();
-    FDebugToolStyle::ReloadTextures();
-
-    FDebugToolCommands::Register();
-    
     if (UDT_Logger::Singleton)
     {
         UE_LOG(LogTemp, Error, TEXT("UDT_Logger::Singleton must be nullptr there"));
@@ -31,12 +26,26 @@ void FDebugToolModule::StartupModule()
     }
     UDT_Logger::Singleton = new UDT_Logger();
 
-    if(UDT_Observer::Singleton)
+    if (UDT_Observer::Singleton)
     {
         UE_LOG(LogTemp, Error, TEXT("UDT_Observer::Singleton must be nullptr there"));
         return;
     }
     UDT_Observer::Singleton = new UDT_Observer();
+}
+
+void FDebugToolModule::StartupModule()
+{
+    FDebugToolStyle::Initialize();
+    FDebugToolStyle::ReloadTextures();
+
+    FDebugToolCommands::Register();
+
+#if WITH_EDITOR
+    FEditorDelegates::OnEditorInitialized.AddRaw(this, &FDebugToolModule::OnEditorInitializedCallback);
+#else
+    DT_ERROR_NO_LOGGER("{0}", "TODO");
+#endif
 
     PluginCommands = MakeShareable(new FUICommandList);
 

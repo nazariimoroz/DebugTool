@@ -11,6 +11,7 @@ class FMenuBuilder;
 class FDebugToolModule : public IModuleInterface
 {
 public:
+    void OnEditorInitializedCallback(double X);
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
 	

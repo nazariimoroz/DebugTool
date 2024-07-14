@@ -44,13 +44,17 @@ private:
     UWorld* CurrentWorld = nullptr;
     TMap<UClass*, TSharedPtr<FObservationInfo>> ObservationInfo;
 
+    FDelegateHandle OnBeginPieCallbackHandle;
     FDelegateHandle OnWorldAddedCallbackHandle;
     FDelegateHandle OnWorldDestroyedCallbackHandle;
 
 private:
 #pragma region Callbacks
-    void OnWorldAddedCallback(ULevel* Level, UWorld* World);
-    void OnWorldDestroyedCallback(ULevel* Level, UWorld* World);
+    void OnBeginPieCallback(bool bArg);
+    void OnPostWorldInitializationCallback(UWorld* World, FWorldInitializationValues WorldInitializationValues);
+
+    void OnActorSpawnedCallback(AActor* Actor);
+    void OnActorDestroyedCallback(AActor* Actor);
 #pragma endregion
 
 };

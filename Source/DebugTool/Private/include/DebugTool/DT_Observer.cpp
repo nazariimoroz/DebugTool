@@ -3,26 +3,31 @@
 
 #include "DebugTool/DT_Observer.h"
 
+#include "EngineUtils.h"
 #include "DebugTool/DT_Logger.h"
 
 UDT_Observer* UDT_Observer::Singleton = nullptr;
 
 UDT_Observer::UDT_Observer()
 {
-    UE_LOG(LogTemp, Warning, TEXT("Inited!!!"));
+    DT_RETURN_NO_LOGGER(GEngine);
 
-    /*
-    OnWorldAddedCallbackHandle = FWorldDelegates::OnWorldTickStart.AddRaw(this, &UDT_Observer::OnWorldAddedCallback);
-    OnWorldDestroyedCallbackHandle = FWorldDelegates::OnWorldTickEnd.AddRaw(this, &UDT_Observer::OnWorldDestroyedCallback);
-    */
+    OnBeginPieCallbackHandle = FEditorDelegates::BeginPIE.AddRaw(this, &UDT_Observer::OnBeginPieCallback);
+    OnWorldAddedCallbackHandle = GEngine->OnWorldAdded().AddRaw(this, &UDT_Observer::OnWorldAddedCallback);
+    OnWorldDestroyedCallbackHandle = GEngine->OnWorldDestroyed().AddRaw(this, &UDT_Observer::OnWorldDestroyedCallback);
+
+    FWorldDelegates::OnPostWorldInitialization.AddRaw(this, &UDT_Observer::OnPostWorldInitializationCallback);
 
     bInited = true;
 }
 
 UDT_Observer::~UDT_Observer()
 {
-    FWorldDelegates::OnWorldTickStart.Remove(OnWorldAddedCallbackHandle);
-    FWorldDelegates::OnWorldTickEnd.Remove(OnWorldDestroyedCallbackHandle);
+    DT_RETURN_NO_LOGGER(GEngine);
+
+    FEditorDelegates::BeginPIE.Remove(OnBeginPieCallbackHandle);
+    GEngine->OnWorldAdded().Remove(OnWorldAddedCallbackHandle);
+    GEngine->OnWorldDestroyed().Remove(OnWorldDestroyedCallbackHandle);
 }
 
 void UDT_Observer::AddObservationProperty(UClass* ObservationClass, FName PropertyName)
@@ -50,16 +55,37 @@ void UDT_Observer::AddObservationProperty(UClass* ObservationClass, FName Proper
     Info->Properties.Add(Property);
 }
 
-void UDT_Observer::OnWorldAddedCallback(ULevel* Level, UWorld* World)
+void UDT_Observer::OnPostWorldInitializationCallback(UWorld* World, FWorldInitializationValues WorldInitializationValues)
 {
-    UE_LOG(LogTemp, Warning, TEXT("Created!!!"));
-    if(GEngine && GEngine->GetCurrentPlayWorld())
-        CurrentWorld = World;
+    if(!GEditor->IsPlaySessionInProgress()) return;
+    CurrentWorld = World;
+
+    if (CurrentWorld)
+    {
+        CurrentWorld->AddOnActorSpawnedHandler(
+            FOnActorSpawned::FDelegate::CreateRaw(this, &UDT_Observer::OnActorSpawnedCallback));
+        CurrentWorld->AddOnActorDestroyedHandler(
+            FOnActorSpawned::FDelegate::CreateRaw(this, &UDT_Observer::OnActorDestroyedCallback));
+
+        if (GEditor->IsPlaySessionInProgress())
+        {
+            for (TActorIterator<AActor> ActorItr(CurrentWorld); ActorItr; ++ActorItr)
+            {
+                OnActorSpawnedCallback(*ActorItr);
+            }
+        }
+    }
 }
 
-void UDT_Observer::OnWorldDestroyedCallback(ULevel* Level, UWorld* World)
+void UDT_Observer::OnActorSpawnedCallback(AActor* Actor)
 {
-    UE_LOG(LogTemp, Warning, TEXT("Destroyed!!!"));
-    if (CurrentWorld == World)
-        CurrentWorld = nullptr;
+    if (const auto InfoPtr = ObservationInfo.Find(Actor->GetClass()))
+    {
+        const auto Info = *InfoPtr;
+        DT_DISPLAY_NO_LOGGER("Actor spawned {0}", Actor->GetName());
+    }
+}
+
+void UDT_Observer::OnActorDestroyedCallback(AActor* Actor)
+{
 }
