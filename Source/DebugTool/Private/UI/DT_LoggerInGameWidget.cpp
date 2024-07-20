@@ -6,6 +6,7 @@
 #include "CommonListView.h"
 #include "DebugTool/DT_LogElementInfo.h"
 #include "DebugTool/DT_Logger.h"
+#include "DebugTool/DT_Observer.h"
 
 bool UDT_LoggerInGameWidget::Initialize()
 {
@@ -14,10 +15,14 @@ bool UDT_LoggerInGameWidget::Initialize()
 
     if(const auto Logger = UDT_Logger::Get())
     {
-        Logger->OnAddLogInGameDelegate = [this](const FDT_LogElement& LogElement)
-        {
-            AddLog(LogElement);
-        };
+        Logger->OnAddLogInGameDelegate.AddUObject(this, &ThisClass::OnAddLogInGameCallback);
+    }
+    else
+        bToRet = false;
+
+    if(const auto Observer = UDT_Observer::Get())
+    {
+        Observer->OnVariableChangedDelegate.AddUObject(this, &ThisClass::OnVariableChangedCallback);
     }
     else
         bToRet = false;
@@ -28,12 +33,6 @@ bool UDT_LoggerInGameWidget::Initialize()
 void UDT_LoggerInGameWidget::BeginDestroy()
 {
     State = EDT_LoggerInGameWidgetState::None;
-    if(const auto Logger = UDT_Logger::Get())
-    {
-        Logger->OnAddLogDelegate = nullptr;
-    }
-    else
-        UE_LOG(LogTemp, Warning, TEXT("Cant get Logger on Destroying"));
 
     Super::BeginDestroy();
 }
@@ -53,4 +52,17 @@ void UDT_LoggerInGameWidget::AddLog(const FDT_LogElement& LogElement)
     LogElementInfo->LogVerbosityColor = LogElement.LogVerbosityColor;
     LogElementInfo->LogText = LogElement.LogText;
     AddLog(LogElementInfo);
+}
+
+void UDT_LoggerInGameWidget::OnAddLogInGameCallback(FDT_LogElement LogElement)
+{
+    AddLog(LogElement);
+}
+
+void UDT_LoggerInGameWidget::OnVariableChangedCallback(TWeakPtr<FDT_VariableInfo> VariableInfo)
+{
+    if(const auto VarInfo = VariableInfo.Pin())
+    {
+        DT_DISPLAY("{0}: {1}", VarInfo->Property->GetName(), VarInfo->Value.Get<int32>());
+    }
 }

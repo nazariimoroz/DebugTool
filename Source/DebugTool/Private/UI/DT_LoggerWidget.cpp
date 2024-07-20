@@ -14,10 +14,7 @@ bool UDT_LoggerWidget::Initialize()
 
     if(const auto Logger = UDT_Logger::Get())
     {
-        Logger->OnAddLogDelegate = [this](const FDT_LogElement& LogElement)
-        {
-            AddLog(LogElement);
-        };
+        DT_ERROR_NO_LOGGER("{0}", "BAN");
     }
     else
         bToRet = false;
@@ -27,13 +24,6 @@ bool UDT_LoggerWidget::Initialize()
 
 void UDT_LoggerWidget::BeginDestroy()
 {
-    if(const auto Logger = UDT_Logger::Get())
-    {
-        Logger->OnAddLogDelegate = nullptr;
-    }
-    else
-        UE_LOG(LogTemp, Warning, TEXT("Cant get Logger on Destroying"));
-
     Super::BeginDestroy();
 }
 

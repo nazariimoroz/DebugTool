@@ -92,6 +92,9 @@ class DEBUGTOOL_API UDT_Logger
 {
     friend FDebugToolModule;
 
+    DECLARE_MULTICAST_DELEGATE_OneParam(FDT_OnAddLogDelegate, FDT_LogElement);
+    DECLARE_MULTICAST_DELEGATE_OneParam(FDT_OnAddLogInGameDelegate, FDT_LogElement);
+
 #pragma region Singleton
 protected:
     UDT_Logger();
@@ -139,8 +142,8 @@ public:
 #pragma region Delegates
     bool bUseDelegates = false;
 
-    TFunction<void(FDT_LogElement)> OnAddLogDelegate;
-    TFunction<void(FDT_LogElement)> OnAddLogInGameDelegate;
+    FDT_OnAddLogDelegate OnAddLogDelegate;
+    FDT_OnAddLogInGameDelegate OnAddLogInGameDelegate;
 #pragma endregion
 
 protected:

@@ -18,12 +18,18 @@ UDT_Observer::UDT_Observer()
     FWorldDelegates::OnPreWorldFinishDestroy.AddRaw(
             this, &UDT_Observer::OnPreWorldFinishDestroyCallback);
 
+    OnWorldTickStartCallbackHandle =
+    FWorldDelegates::OnWorldTickStart.AddRaw(
+        this, &UDT_Observer::OnWorldTickStartCallback);
+
     bInited = true;
 }
 
 UDT_Observer::~UDT_Observer()
 {
     FWorldDelegates::OnPostWorldInitialization.Remove(OnPostWorldInitializationCallbackHandle);
+    FWorldDelegates::OnPreWorldFinishDestroy.Remove(OnPreWorldFinishDestroyCallbackHandle);
+    FWorldDelegates::OnWorldTickStart.Remove(OnWorldTickStartCallbackHandle);
 }
 
 void UDT_Observer::AddObservationProperty(UClass* ObservationClass, FName PropertyName)
@@ -34,7 +40,7 @@ void UDT_Observer::AddObservationProperty(UClass* ObservationClass, FName Proper
     auto InfoPtr = ObservationInfo.Find(ObservationClass);
     if (!InfoPtr)
     {
-        auto Ptr = MakeShared<FObservationInfo>(ObservationClass);
+        auto Ptr = MakeShared<FDT_ObservationInfo>(ObservationClass);
         InfoPtr = &ObservationInfo.Add(MakeTuple(ObservationClass, MoveTempIfPossible(Ptr)));
         DT_RETURN_NO_LOGGER(InfoPtr);
     }
@@ -105,22 +111,123 @@ void UDT_Observer::OnPreWorldFinishDestroyCallback(UWorld* World)
         CleanUp();
 }
 
-void UDT_Observer::OnActorSpawnedCallback(AActor* Actor)
+void UDT_Observer::OnWorldTickStartCallback(UWorld* World, ELevelTick LevelTick, float X)
 {
-    if (const auto InfoPtr = ObservationInfo.Find(Actor->GetClass()))
+    if (!GEditor->IsPlaySessionInProgress()) return;
+
+    for (const auto& [_, ClassInfo] : ObservationInfo)
     {
-        const auto Info = *InfoPtr;
-        for (auto Property : Info->Properties)
+        if(!ClassInfo.IsValid())
+            continue;
+
+        for (const auto& [__, ObjInfo] : ClassInfo->CurrentAvailableActors)
         {
-            if(const auto IntProp = CastField<FIntProperty>(Property))
+            if(!ObjInfo.IsValid())
+                continue;
+
+            const auto* const Actor = ObjInfo->Actor;
+
+            for (const auto& VarInfo : ObjInfo->VariablesInfo)
             {
-                const auto Value = IntProp->ContainerPtrToValuePtr<int32>(Actor);
-                DT_ERROR_NO_LOGGER("Value {0}", *Value);
+                if(!VarInfo.IsValid() || !VarInfo->bIsValid)
+                    continue;
+
+                if(const auto IntProp = CastField<FIntProperty>(VarInfo->Property))
+                {
+                    const auto Value = IntProp->ContainerPtrToValuePtr<int32>(Actor);
+                    if(!Value)
+                    {
+                        DT_ERROR_NO_LOGGER("Bad variable: {0}", IntProp->GetName());
+                        continue;
+                    }
+
+                    if(const auto PrevValue = VarInfo->Value.TryGet<int32>())
+                    {
+                        if(*PrevValue != *Value)
+                        {
+                            VarInfo->Value.Set<int32>(*Value);
+                            OnVariableChangedDelegate.Broadcast(VarInfo.ToWeakPtr());
+                        }
+                    }
+                    else
+                    {
+                        DT_ERROR_NO_LOGGER("Bad variant value: {0}", IntProp->GetName());
+                        VarInfo->Value.Set<int32>(*Value);
+                        OnVariableChangedDelegate.Broadcast(VarInfo.ToWeakPtr());
+                    }
+                }
             }
         }
     }
 }
 
+void UDT_Observer::OnActorSpawnedCallback(AActor* Actor)
+{
+    if(!IsValid(Actor))
+        return;
+
+    if (const auto ClassInfoPtr = ObservationInfo.Find(Actor->GetClass()))
+    {
+        const auto ClassInfo = *ClassInfoPtr;
+        if(ClassInfo->CurrentAvailableActors.Find(Actor))
+            return;
+
+        const auto ActorInfo = MakeShared<FDT_ActorInfo>(Actor);
+        for (auto Property : ClassInfo->Properties)
+        {
+            TSharedPtr<FDT_VariableInfo> VariableInfo = nullptr;
+
+            if(const auto IntProp = CastField<FIntProperty>(Property))
+            {
+                const auto Value = IntProp->ContainerPtrToValuePtr<int32>(Actor);
+
+                VariableInfo = MakeShared<FDT_VariableInfo>(ActorInfo.ToWeakPtr());
+                if(!Value)
+                {
+                    VariableInfo->Property = Property;
+                    VariableInfo->bIsValid = false;
+                    continue;
+                }
+
+                VariableInfo->Property = Property;
+                VariableInfo->bIsValid = true;
+                VariableInfo->Value.Set<int32>(*Value);
+            }
+
+            if(const auto BoolProp = CastField<FBoolProperty>(Property))
+            {
+                const auto Value = BoolProp->ContainerPtrToValuePtr<bool>(Actor);
+
+                VariableInfo = MakeShared<FDT_VariableInfo>(ActorInfo.ToWeakPtr());
+                if(!Value)
+                {
+                    VariableInfo->Property = Property;
+                    VariableInfo->bIsValid = false;
+                    continue;
+                }
+
+                VariableInfo->Property = Property;
+                VariableInfo->bIsValid = true;
+                VariableInfo->Value.Set<bool>(*Value);
+            }
+
+            ActorInfo->VariablesInfo.Add(VariableInfo);
+            OnVariableChangedDelegate.Broadcast(VariableInfo.ToWeakPtr());
+        }
+
+        ClassInfo->CurrentAvailableActors.Add(MakeTuple(Actor, ActorInfo));
+    }
+}
+
 void UDT_Observer::OnActorDestroyedCallback(AActor* Actor)
 {
+    if(!IsValid(Actor))
+        return;
+
+    if (const auto ClassInfoPtr = ObservationInfo.Find(Actor->GetClass()))
+    {
+        const auto ClassInfo = *ClassInfoPtr;
+
+        ClassInfo->CurrentAvailableActors.Remove(Actor);
+    }
 }

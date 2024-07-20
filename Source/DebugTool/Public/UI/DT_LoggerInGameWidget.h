@@ -10,6 +10,8 @@ class UCommonListView;
 class UDT_LogElementInfo;
 struct FDT_LogElement;
 
+struct FDT_VariableInfo;
+
 UENUM(BlueprintType)
 enum class EDT_LoggerInGameWidgetState : uint8
 {
@@ -39,4 +41,8 @@ public:
 
     UPROPERTY(BlueprintReadWrite)
     EDT_LoggerInGameWidgetState State = EDT_LoggerInGameWidgetState::None;
+
+protected:
+    void OnAddLogInGameCallback(FDT_LogElement LogElement);
+    void OnVariableChangedCallback(TWeakPtr<FDT_VariableInfo> VariableInfo);
 };
