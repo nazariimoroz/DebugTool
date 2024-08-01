@@ -2,6 +2,8 @@
 
 
 #include "include/DebugTool/DT_Logger.h"
+
+#include <chrono>
 #include <inttypes.h>
 
 UDT_ChainLogger::UDT_ChainLogger(const ELogVerbosity::Type InLogVerbosity, const std::string& InCategory, const uint64 InLine): LogVerbosity(InLogVerbosity)
@@ -50,7 +52,25 @@ UDT_Logger* UDT_Logger::Singleton = nullptr;
 UDT_Logger::UDT_Logger()
 {
     bUseDelegates = true;
+
+    if(bUseLoggerFile)
+    {
+        time_t now = time(0);
+        struct tm  tstruct;
+        char buf[80];
+        tstruct = *localtime(&now);
+        strftime(buf, sizeof(buf), "%Y-%m-%d.%X", &tstruct);
+
+        LoggerFile.open((std::stringstream() << "Log_" << buf << ".txt").str());
+    }
+
     bInited = true;
+}
+
+UDT_Logger::~UDT_Logger()
+{
+    if(bUseLoggerFile)
+        LoggerFile.close();
 }
 
 void UDT_Logger::WriteLine(const ELogVerbosity::Type LogVerbosity, const std::string& Category, const uint64 Line, const FString& Str)
@@ -75,6 +95,18 @@ void UDT_Logger::WriteLine(const ELogVerbosity::Type LogVerbosity, const std::st
         if (bUseDelegates) OnAddLogInGameDelegate.Broadcast(LogElement);
 
         LoggerListInGame.AddTail(LogElement);
+    }
+
+    if(bUseLoggerFile)
+    {
+        if(LoggerFile.is_open())
+        {
+            LoggerFile << GetData(Final);
+        }
+        else
+        {
+            DT_ERROR_NO_LOGGER("{0}", "LoggerFile is closed");
+        }
     }
 }
 

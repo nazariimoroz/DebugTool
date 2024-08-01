@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <fstream>
 #include <string>
 
 #include "CoreMinimal.h"
@@ -185,6 +186,7 @@ class DEBUGTOOL_API UDT_Logger
 
 protected:
     UDT_Logger();
+    ~UDT_Logger();
 
 public:
     static UDT_Logger* Get()
@@ -229,9 +231,10 @@ public:
     UDT_ChainLogger CreateChainLogger(const ELogVerbosity::Type LogVerbosity, const std::string& Category, const uint64 Line) const;
 
 public:
-#pragma region Delegates
     bool bUseDelegates = false;
+    bool bUseLoggerFile = false;
 
+#pragma region Delegates
     FDT_OnAddLogDelegate OnAddLogDelegate;
     FDT_OnAddLogInGameDelegate OnAddLogInGameDelegate;
 #pragma endregion
@@ -245,4 +248,6 @@ protected:
 
     TDoubleLinkedList<FDT_LogElement> LoggerListInGame;
     TDoubleLinkedList<FDT_LogElement> LoggerList;
+
+    std::wofstream LoggerFile;
 };
