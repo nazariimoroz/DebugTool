@@ -129,7 +129,7 @@ public:
     UDT_ChainLogger& operator<<(float Value);
     UDT_ChainLogger& operator<<(bool Value);
 
-    template <class T, std::enable_if_t<std::is_base_of_v< std::remove_pointer_t<T>, UObject>, bool> = true>
+    template <class T, std::enable_if_t<std::is_base_of_v<UObject, std::remove_pointer_t<T>>, bool> = true>
     UDT_ChainLogger& operator<<(const TArray<T>& Array)
     {
         StringBuilder.Append("[ ");
