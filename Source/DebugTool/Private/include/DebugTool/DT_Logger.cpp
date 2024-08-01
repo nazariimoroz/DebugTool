@@ -13,31 +13,14 @@ UDT_Logger::UDT_Logger()
     bInited = true;
 }
 
-void UDT_Logger::WriteLine(const ELogVerbosity::Type LogVerbosity, const FString& FilePath, const uint64 Line, const FString& Str)
+void UDT_Logger::WriteLine(const ELogVerbosity::Type LogVerbosity, const std::string& Category, const uint64 Line, const FString& Str)
 {
     if (!bInited)
     {
         UE_LOG(LogTemp, Error, TEXT("Logger is not inited"));
         return;
     }
-
-    int32 BeginPos;
-    int32 EndPos;
-
-    if (!FilePath.FindLastChar('\\', BeginPos) && !FilePath.FindLastChar('/', BeginPos))
-        BeginPos = 0;
-    else
-        BeginPos += 1;
-
-    if (!FilePath.FindLastChar('.', EndPos))
-    {
-        UE_LOG(LogTemp, Error, TEXT("Bad FilePath"));
-        return;
-    }
-
-    const auto FileName = UKismetStringLibrary::GetSubstring(FilePath, BeginPos, EndPos - BeginPos);
-
-    const auto Final = FString::Printf(TEXT("%s(%" PRIu64 "): %s"), *FileName, Line, *Str);
+    const auto Final = FString::Printf(TEXT("%hs(%" PRIu64 "): %s"), Category.data(), Line, *Str);
     const auto FinalText = FText::FromString(Final);
 
     auto LogElement = FDT_LogElement();
@@ -55,9 +38,9 @@ void UDT_Logger::WriteLine(const ELogVerbosity::Type LogVerbosity, const FString
     }
 }
 
-void UDT_Logger::Breakpoint(const FString& FilePath, const uint64 Line)
+void UDT_Logger::Breakpoint(const std::string& Category, const uint64 Line)
 {
-    WriteLineFormat(ELogVerbosity::Error, FilePath, Line, TEXT("BREAKPOINT"));
+    WriteLineFormat(ELogVerbosity::Error, Category, Line, TEXT("BREAKPOINT"));
 }
 
 TArray<FDT_LogElement> UDT_Logger::GetLastLogsInGame(int32 Count) const

@@ -2,7 +2,10 @@
 
 #pragma once
 
+#include <string>
+
 #include "CoreMinimal.h"
+#include "Kismet/KismetStringLibrary.h"
 #include "Logging/StructuredLog.h"
 
 #define TO_STR(TO_CONV) #TO_CONV
@@ -32,19 +35,19 @@
 #define DT_RETURN_NO_LOGGER(Expression) DT_RETURN_A(Expression, )
 
 
-#define DT_DISPLAY(Format, ...) do {                                                                            \
-    UE_LOGFMT(LogTemp, Display, Format, __VA_ARGS__);                                                           \
-    if(const auto Logger = UDT_Logger::Get()) Logger->Display(__FILE__, __LINE__, TEXT(Format), __VA_ARGS__);   \
+#define DT_DISPLAY(Format, ...) do {                                                                                                        \
+    UE_LOGFMT(LogTemp, Display, Format, __VA_ARGS__);                                                                                       \
+    if(const auto Logger = UDT_Logger::Get()) Logger->Display(DT_GET_CATEGORY_BY_FILENAME(__FILE__), __LINE__, TEXT(Format), __VA_ARGS__);  \
     } while(false)
 
-#define DT_ERROR(Format, ...) do {                                                                              \
-    UE_LOGFMT(LogTemp, Error, Format, __VA_ARGS__);                                                             \
-    if(const auto Logger = UDT_Logger::Get()) Logger->Error(__FILE__, __LINE__, TEXT(Format), __VA_ARGS__);     \
+#define DT_ERROR(Format, ...) do {                                                                                                              \
+    UE_LOGFMT(LogTemp, Error, Format, __VA_ARGS__);                                                                                             \
+    if(const auto Logger = UDT_Logger::Get()) Logger->Error(DT_GET_CATEGORY_BY_FILENAME(__FILE__), __LINE__, TEXT(Format), __VA_ARGS__);        \
     } while(false)
 
-#define DT_BREAKPOINT() do {                                                                    \
-    UE_LOGFMT(LogTemp, Error, "{0}: BREAKPOINT", TEXT(__FILE__ "(" TO_STR_COV(__LINE__) ")"));  \
-    if(const auto Logger = UDT_Logger::Get()) Logger->Breakpoint(__FILE__, __LINE__);           \
+#define DT_BREAKPOINT() do {                                                                                                    \
+    UE_LOGFMT(LogTemp, Error, "{0}: BREAKPOINT", TEXT(__FILE__ "(" TO_STR_COV(__LINE__) ")"));                                  \
+    if(const auto Logger = UDT_Logger::Get()) Logger->Breakpoint(DT_GET_CATEGORY_BY_FILENAME(__FILE__), __LINE__);              \
     } while(false)
 
 #define DT_RETURN_A(Expression, TO_RET) do {        \
@@ -57,6 +60,22 @@
 
 #define DT_RETURN(Expression) DT_RETURN_A(Expression, )
 
+constexpr std::string DT_GET_CATEGORY_BY_FILENAME(std::string InFileName)
+{
+    std::size_t BeginPos = InFileName.find_last_of("\\/");
+    if(BeginPos == std::string::npos)
+        BeginPos = 0;
+    else
+        BeginPos += 1;
+
+    std::size_t EndPos = InFileName.find_last_of('.');
+    if(BeginPos == std::string::npos)
+    {
+        return "UNKNOWN";
+    }
+
+    return InFileName.substr(BeginPos, EndPos - BeginPos);
+}
 
 class FDebugToolModule;
 
@@ -112,29 +131,29 @@ protected:
 #pragma endregion
 
 public:
-    void WriteLine(const ELogVerbosity::Type LogVerbosity, const FString& FilePath, const uint64 Line, const FString& Str);
+    void WriteLine(const ELogVerbosity::Type LogVerbosity, const std::string& Category, const uint64 Line, const FString& Str);
 
     template<class ...T>
-    void WriteLineFormat(const ELogVerbosity::Type LogVerbosity, const FString& FilePath, const uint64 Line, const FStringView& Format, T ...Args)
+    void WriteLineFormat(const ELogVerbosity::Type LogVerbosity, const std::string& Category, const uint64 Line, const FStringView& Format, T ...Args)
     {
         const auto Str = FString::Format(Format.GetData(), FStringFormatOrderedArguments{Args...});
 
-        WriteLine(LogVerbosity, FilePath, Line, Str);
+        WriteLine(LogVerbosity, Category, Line, Str);
     }
 
     template<class ...T>
-    void Display(const FString& FilePath, const uint64 Line, const FStringView& Format, T ...Args)
+    void Display(const std::string& Category, const uint64 Line, const FStringView& Format, T ...Args)
     {
-        WriteLineFormat(ELogVerbosity::Display, FilePath, Line, Format, Args...);
+        WriteLineFormat(ELogVerbosity::Display, Category, Line, Format, Args...);
     }
 
     template<class ...T>
-    void Error(const FString& FilePath, const uint64 Line, const FStringView& Format, T ...Args)
+    void Error(const std::string& Category, const uint64 Line, const FStringView& Format, T ...Args)
     {
-        WriteLineFormat(ELogVerbosity::Error, FilePath, Line, Format, Args...);
+        WriteLineFormat(ELogVerbosity::Error, Category, Line, Format, Args...);
     }
 
-    void Breakpoint(const FString& FilePath, const uint64 Line);
+    void Breakpoint(const std::string& Category, const uint64 Line);
 
     TArray<FDT_LogElement> GetLastLogsInGame(int32 Count = -1) const;
 

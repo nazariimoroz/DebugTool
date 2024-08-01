@@ -7,6 +7,7 @@
 #include "DebugTool/DT_LogElementInfo.h"
 #include "DebugTool/DT_Logger.h"
 #include "DebugTool/DT_Observer.h"
+#include "UI/DT_ListView.h"
 
 bool UDT_LoggerInGameWidget::Initialize()
 {
@@ -42,7 +43,7 @@ void UDT_LoggerInGameWidget::AddLog(UDT_LogElementInfo* const LogElementInfo)
     DT_RETURN_NO_LOGGER(LoggerView);
 
     if(State == EDT_LoggerInGameWidgetState::Logger)
-        LoggerView->AddItem(LogElementInfo);
+        LoggerView->AddItemAt(LogElementInfo, 0);
 }
 
 void UDT_LoggerInGameWidget::AddLog(const FDT_LogElement& LogElement)

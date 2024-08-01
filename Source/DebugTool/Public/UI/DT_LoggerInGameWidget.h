@@ -6,7 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "DT_LoggerInGameWidget.generated.h"
 
-class UCommonListView;
+class UDT_ListView;
 class UDT_LogElementInfo;
 struct FDT_LogElement;
 
@@ -37,7 +37,7 @@ public:
 
 public:
     UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (BindWidget))
-    TObjectPtr<UCommonListView> LoggerView;
+    TObjectPtr<UDT_ListView> LoggerView;
 
     UPROPERTY(BlueprintReadWrite)
     EDT_LoggerInGameWidgetState State = EDT_LoggerInGameWidgetState::None;
