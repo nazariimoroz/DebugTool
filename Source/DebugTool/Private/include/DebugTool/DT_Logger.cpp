@@ -2,8 +2,48 @@
 
 
 #include "include/DebugTool/DT_Logger.h"
-#include "Kismet/KismetStringLibrary.h"
 #include <inttypes.h>
+
+UDT_ChainLogger::UDT_ChainLogger(const ELogVerbosity::Type InLogVerbosity, const std::string& InCategory, const uint64 InLine): LogVerbosity(InLogVerbosity)
+    , Category(InCategory)
+    , Line(InLine)
+{}
+
+UDT_ChainLogger::~UDT_ChainLogger()
+{
+    if(const auto Logger = UDT_Logger::Get())
+        Logger->WriteLine(LogVerbosity, Category, Line, StringBuilder.ToString());
+}
+
+UDT_ChainLogger& UDT_ChainLogger::operator<<(const char* Value)
+{
+    StringBuilder.Append(Value);
+    return *this;
+}
+
+UDT_ChainLogger& UDT_ChainLogger::operator<<(const wchar_t* Value)
+{
+    StringBuilder.Append(Value);
+    return *this;
+}
+
+UDT_ChainLogger& UDT_ChainLogger::operator<<(const int32 Value)
+{
+    StringBuilder.Append(FString::FromInt(Value));
+    return *this;
+}
+
+UDT_ChainLogger& UDT_ChainLogger::operator<<(const float Value)
+{
+    StringBuilder.Append(FString::SanitizeFloat(Value));
+    return *this;
+}
+
+UDT_ChainLogger& UDT_ChainLogger::operator<<(const bool Value)
+{
+    StringBuilder.Append(Value ? "True" : "False");
+    return *this;
+}
 
 UDT_Logger* UDT_Logger::Singleton = nullptr;
 
@@ -55,3 +95,9 @@ TArray<FDT_LogElement> UDT_Logger::GetLastLogsInGame(int32 Count) const
     }
     return ToRet;
 }
+
+UDT_ChainLogger UDT_Logger::CreateChainLogger(const ELogVerbosity::Type LogVerbosity, const std::string& Category, const uint64 Line) const
+{
+    return UDT_ChainLogger(LogVerbosity, Category, Line);
+}
+
