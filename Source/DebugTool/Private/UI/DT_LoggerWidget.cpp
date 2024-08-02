@@ -3,33 +3,34 @@
 
 #include "UI/DT_LoggerWidget.h"
 
-#include "CommonListView.h"
 #include "DebugTool/DT_LogElementInfo.h"
 #include "DebugTool/DT_Logger.h"
-#include "UI/DT_LogElementWidget.h"
+#include "UI/DT_ListView.h"
 
-bool UDT_LoggerWidget::Initialize()
+bool UDT_LoggerWidget::Refresh()
 {
-    bool bToRet = Super::Initialize();
-
-    if(const auto Logger = UDT_Logger::Get())
+    if(const auto Log = UDT_Logger::Get())
     {
-        DT_ERROR_NO_LOGGER("{0}", "BAN");
+        LoggerView->ClearListItems();
+
+        const auto LastLogsInGame = Log->GetLastLogsInGame(500);
+
+        for (const auto& i : LastLogsInGame)
+        {
+            AddLog(i);
+        }
+
+        return true;
     }
-    else
-        bToRet = false;
 
-    return bToRet;
-}
-
-void UDT_LoggerWidget::BeginDestroy()
-{
-    Super::BeginDestroy();
+    return false;
 }
 
 void UDT_LoggerWidget::AddLog(UDT_LogElementInfo* const LogElementInfo)
 {
-    LoggerView->AddItem(LogElementInfo);
+    DT_RETURN_NO_LOGGER(LoggerView);
+
+    LoggerView->AddItemAt(LogElementInfo, 0);
 }
 
 void UDT_LoggerWidget::AddLog(const FDT_LogElement& LogElement)

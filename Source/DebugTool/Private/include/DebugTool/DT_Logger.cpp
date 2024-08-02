@@ -52,6 +52,7 @@ UDT_Logger* UDT_Logger::Singleton = nullptr;
 UDT_Logger::UDT_Logger()
 {
     bUseDelegates = true;
+    bUseLoggerFile = true;
 
     if(bUseLoggerFile)
     {
@@ -59,9 +60,10 @@ UDT_Logger::UDT_Logger()
         struct tm  tstruct;
         char buf[80];
         tstruct = *localtime(&now);
-        strftime(buf, sizeof(buf), "%Y-%m-%d.%X", &tstruct);
+        strftime(buf, sizeof(buf), "%Y-%m-%d-%H-%M-%S", &tstruct);
 
-        LoggerFile.open((std::stringstream() << "Log_" << buf << ".txt").str());
+        const auto FileName = (std::stringstream() << "Log_" << buf << ".txt").str();
+        LoggerFile.open(FileName, std::ios::out);
     }
 
     bInited = true;
@@ -101,7 +103,7 @@ void UDT_Logger::WriteLine(const ELogVerbosity::Type LogVerbosity, const std::st
     {
         if(LoggerFile.is_open())
         {
-            LoggerFile << GetData(Final);
+            LoggerFile << GetData(Final) << "\n";
         }
         else
         {

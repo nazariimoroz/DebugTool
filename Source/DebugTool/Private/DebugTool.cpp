@@ -81,7 +81,7 @@ void FDebugToolModule::ShutdownModule()
 
 TSharedRef<SDockTab> FDebugToolModule::OnSpawnPluginTab(const FSpawnTabArgs& SpawnTabArgs)
 {
-    UObject* Blueprint = UEditorAssetLibrary::LoadAsset(FString(TEXT("EditorUtilityWidgetBlueprint'/DebugTool/EUW_Logger.EUW_Logger'")));
+    UObject* Blueprint = UEditorAssetLibrary::LoadAsset(FString(TEXT("EditorUtilityWidgetBlueprint'/DebugTool/UI/InEditor/EUW_InEditorLogger.EUW_InEditorLogger'")));
     if (Blueprint)
     {
         UEditorUtilityWidgetBlueprint* EditorWidgetBlueprint = Cast<UEditorUtilityWidgetBlueprint>(Blueprint);
