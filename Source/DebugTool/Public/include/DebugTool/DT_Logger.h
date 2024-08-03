@@ -230,6 +230,8 @@ public:
 
     UDT_ChainLogger CreateChainLogger(const ELogVerbosity::Type LogVerbosity, const std::string& Category, const uint64 Line) const;
 
+    void ReloadLogFileFromSettingsClass();
+
 public:
     bool bUseDelegates = false;
     bool bUseLoggerFile = false;

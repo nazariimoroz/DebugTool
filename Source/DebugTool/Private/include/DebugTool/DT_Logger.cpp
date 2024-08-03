@@ -6,9 +6,11 @@
 #include <chrono>
 #include <inttypes.h>
 
+#include "DT_Settings.h"
+
 UDT_ChainLogger::UDT_ChainLogger(const ELogVerbosity::Type InLogVerbosity, const std::string& InCategory, const uint64 InLine): LogVerbosity(InLogVerbosity)
-    , Category(InCategory)
-    , Line(InLine)
+                                                                                                                                , Category(InCategory)
+                                                                                                                                , Line(InLine)
 {}
 
 UDT_ChainLogger::~UDT_ChainLogger()
@@ -54,17 +56,16 @@ UDT_Logger::UDT_Logger()
     bUseDelegates = true;
     bUseLoggerFile = true;
 
+#if WITH_EDITOR
+    ReloadLogFileFromSettingsClass();
+#else
     if(bUseLoggerFile)
     {
-        time_t now = time(0);
-        struct tm  tstruct;
-        char buf[80];
-        tstruct = *localtime(&now);
-        strftime(buf, sizeof(buf), "%Y-%m-%d-%H-%M-%S", &tstruct);
-
-        const auto FileName = (std::stringstream() << "Log_" << buf << ".txt").str();
-        LoggerFile.open(FileName, std::ios::out);
+        FString FileDir = FPaths::AutomationLogDir();
+        const auto FileName = FPaths::Combine(FileDir, FString::Printf(TEXT("Log_%hs.txt"), buf));
+        LoggerFile.open(*FileName, std::ios::out);
     }
+#endif
 
     bInited = true;
 }
@@ -103,7 +104,7 @@ void UDT_Logger::WriteLine(const ELogVerbosity::Type LogVerbosity, const std::st
     {
         if(LoggerFile.is_open())
         {
-            LoggerFile << GetData(Final) << "\n";
+            LoggerFile << GetData(Final) << std::endl;
         }
         else
         {
@@ -133,5 +134,36 @@ TArray<FDT_LogElement> UDT_Logger::GetLastLogsInGame(int32 Count) const
 UDT_ChainLogger UDT_Logger::CreateChainLogger(const ELogVerbosity::Type LogVerbosity, const std::string& Category, const uint64 Line) const
 {
     return UDT_ChainLogger(LogVerbosity, Category, Line);
+}
+
+void UDT_Logger::ReloadLogFileFromSettingsClass()
+{
+    if(const auto Settings = GetMutableDefault<UDT_Settings>())
+    {
+        if(LoggerFile.is_open())
+            LoggerFile.close();
+
+        bUseLoggerFile = Settings->bEnableLogFile;
+        if(bUseLoggerFile)
+        {
+            time_t now = time(0);
+            struct tm  tstruct;
+            char buf[80];
+            tstruct = *localtime(&now);
+            strftime(buf, sizeof(buf), "%Y-%m-%d-%H-%M-%S", &tstruct);
+
+            FString FileDir;
+            if(!Settings->LogFilePath.IsEmpty())
+            {
+                FileDir = Settings->LogFilePath;
+            }
+            else
+            {
+                FileDir = FPaths::ProjectLogDir();
+            }
+            const auto FileName = FPaths::Combine(FileDir, FString::Printf(TEXT("Log_%hs.txt"), buf));
+            LoggerFile.open(*FileName, std::ios::out);
+        }
+    }
 }
 

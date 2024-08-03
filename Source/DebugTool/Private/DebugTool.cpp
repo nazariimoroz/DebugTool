@@ -3,6 +3,7 @@
 #include "DebugTool.h"
 #include "DebugToolStyle.h"
 #include "DebugToolCommands.h"
+#include "DT_Settings.h"
 #include "EditorAssetLibrary.h"
 #include "EditorUtilitySubsystem.h"
 #include "EditorUtilityWidgetBlueprint.h"
@@ -12,6 +13,7 @@
 #include "ToolMenus.h"
 #include "DebugTool/DT_Logger.h"
 #include "DebugTool/DT_Observer.h"
+#include "ISettingsModule.h"
 
 static const FName DebugToolTabName("DebugTool");
 
@@ -59,6 +61,17 @@ void FDebugToolModule::StartupModule()
     FGlobalTabmanager::Get()->RegisterNomadTabSpawner(DebugToolTabName, FOnSpawnTab::CreateRaw(this, &FDebugToolModule::OnSpawnPluginTab))
                             .SetDisplayName(LOCTEXT("FDebugToolTabTitle", "DebugTool"))
                             .SetMenuType(ETabSpawnerMenuType::Hidden);
+
+    // Custom Settings
+    {
+        if(ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
+        {
+            SettingsModule->RegisterSettings("Project", "Plugins", "DebugTool",
+                LOCTEXT("RuntimeSettingsName", "Debug Tool"), LOCTEXT("RuntimeSettingsDescription", "Debug Tool"),
+                GetMutableDefault<UDT_Settings>());
+        }
+
+    }
 }
 
 void FDebugToolModule::ShutdownModule()
@@ -77,6 +90,14 @@ void FDebugToolModule::ShutdownModule()
     FDebugToolCommands::Unregister();
 
     FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(DebugToolTabName);
+
+    // Custom Settings
+    {
+        if(ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
+        {
+            SettingsModule->UnregisterSettings("Project", "Plugins", "DebugToolSettings");
+        }
+    }
 }
 
 TSharedRef<SDockTab> FDebugToolModule::OnSpawnPluginTab(const FSpawnTabArgs& SpawnTabArgs)
