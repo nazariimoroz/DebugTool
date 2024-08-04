@@ -117,6 +117,14 @@ private:
     ELogVerbosity::Type LogVerbosity = ELogVerbosity::Display;
 };
 
+template <class T>
+constexpr auto FTArrayCondition =
+    std::is_arithmetic_v<T> ||
+    std::is_base_of_v<UObject, std::remove_pointer_t<T>> ||
+    std::is_same_v<std::remove_reference_t<T>, FString> ||
+    std::is_same_v<std::remove_reference_t<T>, FName> ||
+    std::is_same_v<std::remove_reference_t<T>, FText>;
+
 class DEBUGTOOL_API UDT_ChainLogger final
 {
 public:
@@ -129,26 +137,12 @@ public:
     UDT_ChainLogger& operator<<(float Value);
     UDT_ChainLogger& operator<<(bool Value);
 
-    template <class T, std::enable_if_t<std::is_base_of_v<UObject, std::remove_pointer_t<T>>, bool> = true>
-    UDT_ChainLogger& operator<<(const TArray<T>& Array)
-    {
-        StringBuilder.Append("[ ");
+    UDT_ChainLogger& operator<<(const UObject* const Value);
+    UDT_ChainLogger& operator<<(const FString& Value);
+    UDT_ChainLogger& operator<<(const FName& Value);
+    UDT_ChainLogger& operator<<(const FText& Value);
 
-        int Index = 0;
-        for (const auto& Value : Array)
-        {
-            operator<<(GetData(Value->GetName()));
-
-            if (Array.Num() - 1 != Index)
-                StringBuilder.Append(", ");
-
-            Index += 1;
-        }
-        StringBuilder.Append(" ]");
-        return *this;
-    }
-
-    template <class T, std::enable_if_t<std::is_arithmetic_v<T>, bool> = true>
+    template <class T, std::enable_if_t<FTArrayCondition<T>, bool>  = true>
     UDT_ChainLogger& operator<<(const TArray<T>& Array)
     {
         StringBuilder.Append("[ ");
@@ -158,7 +152,7 @@ public:
         {
             operator<<(Value);
 
-            if(Array.Num() - 1 != Index)
+            if (Array.Num() - 1 != Index)
                 StringBuilder.Append(", ");
 
             Index += 1;

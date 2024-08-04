@@ -49,6 +49,30 @@ UDT_ChainLogger& UDT_ChainLogger::operator<<(const bool Value)
     return *this;
 }
 
+UDT_ChainLogger& UDT_ChainLogger::operator<<(const UObject* const Value)
+{
+    StringBuilder.Append(GetData(Value->GetName()));
+    return *this;
+}
+
+UDT_ChainLogger& UDT_ChainLogger::operator<<(const FString& Value)
+{
+    StringBuilder.Append(Value);
+    return *this;
+}
+
+UDT_ChainLogger& UDT_ChainLogger::operator<<(const FName& Value)
+{
+    StringBuilder.Append(Value.ToString());
+    return *this;
+}
+
+UDT_ChainLogger& UDT_ChainLogger::operator<<(const FText& Value)
+{
+    StringBuilder.Append(Value.ToString());
+    return *this;
+}
+
 UDT_Logger* UDT_Logger::Singleton = nullptr;
 
 UDT_Logger::UDT_Logger()
