@@ -11,7 +11,7 @@
 #define TO_STR(TO_CONV) #TO_CONV
 #define TO_STR_COV(TO_CONV) TO_STR(TO_CONV)
 
-#pragma region NoReturnMacros
+#pragma region NoLoggerMacros
 #define DT_DISPLAY_NO_LOGGER(Format, ...) do {       \
     UE_LOGFMT(LogTemp, Display, Format, __VA_ARGS__);\
     } while(false)
@@ -24,7 +24,16 @@
     UE_LOGFMT(LogTemp, Error, "{0}: BREAKPOINT", TEXT(__FILE__ "(" TO_STR_COV(__LINE__) ")"));\
     } while(false)
 
-#pragma endregion NoReturnMacros
+#define DT_RETURN_A_NO_LOGGER(Expression, TO_RET) do {          \
+    if(!(Expression))                                           \
+    {                                                           \
+        DT_ERROR_NO_LOGGER("{}", #Expression);                  \
+        return TO_RET;                                          \
+    }                                                           \
+    } while(false)
+
+#define DT_RETURN_NO_LOGGER(Expression) DT_RETURN_A(Expression, )
+#pragma endregion NoLoggerMacros
 
 #pragma region BaseMacros
 #define DT_DISPLAY(Format, ...) do {                                                                                                        \
@@ -35,6 +44,17 @@
 #define DT_ERROR(Format, ...) do {                                                                                                              \
     UE_LOGFMT(LogTemp, Error, Format, __VA_ARGS__);                                                                                             \
     if(const auto Logger = UDT_Logger::Get()) Logger->Error(DT_GET_CATEGORY_BY_FILENAME(__FILE__), __LINE__, TEXT(Format), __VA_ARGS__);        \
+    } while(false)
+
+#pragma region BaseMacros
+#define DT_DISPLAY_A(Message) do {                                                                                                        \
+    UE_LOGFMT(LogTemp, Display, "{0}", Message);                                                                                       \
+    if(const auto Logger = UDT_Logger::Get()) Logger->Display(DT_GET_CATEGORY_BY_FILENAME(__FILE__), __LINE__, TEXT("{0}"), Message);  \
+    } while(false)
+
+#define DT_ERROR_A(Message) do {                                                                                                              \
+    UE_LOGFMT(LogTemp, Error, "{0}", Message);                                                                                             \
+    if(const auto Logger = UDT_Logger::Get()) Logger->Error(DT_GET_CATEGORY_BY_FILENAME(__FILE__), __LINE__, TEXT("{0}"), Message);        \
     } while(false)
 
 #define DT_BREAKPOINT() do {                                                                                                    \
@@ -52,16 +72,6 @@
 #pragma endregion ChainedMacros
 
 #pragma region ReturnMacros
-#define DT_RETURN_A_NO_LOGGER(Expression, TO_RET) do {          \
-    if(!(Expression))                                           \
-    {                                                           \
-        DT_ERROR_NO_LOGGER("{}", #Expression);                  \
-        return TO_RET;                                          \
-    }                                                           \
-    } while(false)
-
-#define DT_RETURN_NO_LOGGER(Expression) DT_RETURN_A(Expression, )
-
 #define DT_RETURN_A(Expression, TO_RET) do {        \
     if(!(Expression))                               \
     {                                               \
