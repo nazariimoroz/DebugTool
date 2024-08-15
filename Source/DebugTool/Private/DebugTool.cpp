@@ -1,25 +1,17 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "DebugTool.h"
-#include "DebugToolStyle.h"
-#include "DebugToolCommands.h"
 #include "DT_Settings.h"
-#include "EditorAssetLibrary.h"
-#include "EditorUtilitySubsystem.h"
-#include "EditorUtilityWidgetBlueprint.h"
-#include "Widgets/Docking/SDockTab.h"
-#include "Widgets/Layout/SBox.h"
-#include "Widgets/Text/STextBlock.h"
-#include "ToolMenus.h"
 #include "DebugTool/DT_Logger.h"
 #include "DebugTool/DT_Observer.h"
-#include "ISettingsModule.h"
 
-static const FName DebugToolTabName("DebugTool");
+#if WITH_EDITOR
+#include "ISettingsModule.h"
+#endif
 
 #define LOCTEXT_NAMESPACE "FDebugToolModule"
 
-void FDebugToolModule::OnEditorInitializedCallback(double X)
+void FDebugToolModule::StartupModule()
 {
     if (UDT_Logger::Singleton)
     {
@@ -34,34 +26,8 @@ void FDebugToolModule::OnEditorInitializedCallback(double X)
         return;
     }
     UDT_Observer::Singleton = new UDT_Observer();
-}
-
-void FDebugToolModule::StartupModule()
-{
-    FDebugToolStyle::Initialize();
-    FDebugToolStyle::ReloadTextures();
-
-    FDebugToolCommands::Register();
 
 #if WITH_EDITOR
-    FEditorDelegates::OnEditorInitialized.AddRaw(this, &FDebugToolModule::OnEditorInitializedCallback);
-#else
-    DT_ERROR_NO_LOGGER("{0}", "TODO");
-#endif
-
-    PluginCommands = MakeShareable(new FUICommandList);
-
-    PluginCommands->MapAction(
-        FDebugToolCommands::Get().OpenPluginWindow,
-        FExecuteAction::CreateRaw(this, &FDebugToolModule::PluginButtonClicked),
-        FCanExecuteAction());
-
-    UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FDebugToolModule::RegisterMenus));
-
-    FGlobalTabmanager::Get()->RegisterNomadTabSpawner(DebugToolTabName, FOnSpawnTab::CreateRaw(this, &FDebugToolModule::OnSpawnPluginTab))
-                            .SetDisplayName(LOCTEXT("FDebugToolTabTitle", "DebugTool"))
-                            .SetMenuType(ETabSpawnerMenuType::Hidden);
-
     // Custom Settings
     {
         if(ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
@@ -72,6 +38,7 @@ void FDebugToolModule::StartupModule()
         }
 
     }
+#endif
 }
 
 void FDebugToolModule::ShutdownModule()
@@ -81,16 +48,7 @@ void FDebugToolModule::ShutdownModule()
     delete UDT_Observer::Singleton;
     UDT_Observer::Singleton = nullptr;
 
-    UToolMenus::UnRegisterStartupCallback(this);
-
-    UToolMenus::UnregisterOwner(this);
-
-    FDebugToolStyle::Shutdown();
-
-    FDebugToolCommands::Unregister();
-
-    FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(DebugToolTabName);
-
+#if WITH_EDITOR
     // Custom Settings
     {
         if(ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
@@ -98,53 +56,7 @@ void FDebugToolModule::ShutdownModule()
             SettingsModule->UnregisterSettings("Project", "Plugins", "DebugToolSettings");
         }
     }
-}
-
-TSharedRef<SDockTab> FDebugToolModule::OnSpawnPluginTab(const FSpawnTabArgs& SpawnTabArgs)
-{
-    UObject* Blueprint = UEditorAssetLibrary::LoadAsset(FString(TEXT("EditorUtilityWidgetBlueprint'/DebugTool/UI/InEditor/EUW_InEditorLogger.EUW_InEditorLogger'")));
-    if (Blueprint)
-    {
-        UEditorUtilityWidgetBlueprint* EditorWidgetBlueprint = Cast<UEditorUtilityWidgetBlueprint>(Blueprint);
-        if (EditorWidgetBlueprint)
-        {
-            UEditorUtilitySubsystem* EditorUtilitySubsystem = GEditor->GetEditorSubsystem<UEditorUtilitySubsystem>();
-            if (EditorUtilitySubsystem)
-            {
-                FName ID;
-                UEditorUtilityWidget* EditorWidget = EditorUtilitySubsystem->SpawnAndRegisterTabAndGetID(EditorWidgetBlueprint, ID);
-
-                if (EditorWidget)
-                {
-                    auto DockTab = SNew(SDockTab).TabRole(ETabRole::NomadTab)[EditorWidget->TakeWidget()];
-                    EditorUtilitySubsystem->CloseTabByID(ID);
-                    return DockTab;
-                }
-            }
-        }
-    }
-    return SNew(SDockTab);
-}
-
-void FDebugToolModule::PluginButtonClicked()
-{
-    FGlobalTabmanager::Get()->TryInvokeTab(DebugToolTabName);
-}
-
-void FDebugToolModule::RegisterMenus()
-{
-    FToolMenuOwnerScoped OwnerScoped(this);
-
-    {
-        UToolMenu* ToolbarMenu = UToolMenus::Get()->ExtendMenu("LevelEditor.LevelEditorToolBar.SettingsToolbar");
-        {
-            FToolMenuSection& Section = ToolbarMenu->FindOrAddSection("Debug");
-            {
-                FToolMenuEntry& Entry = Section.AddEntry(FToolMenuEntry::InitToolBarButton(FDebugToolCommands::Get().OpenPluginWindow));
-                Entry.SetCommandList(PluginCommands);
-            }
-        }
-    }
+#endif
 }
 
 #undef LOCTEXT_NAMESPACE

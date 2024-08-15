@@ -11,17 +11,7 @@ class FMenuBuilder;
 class FDebugToolModule : public IModuleInterface
 {
 public:
-    void OnEditorInitializedCallback(double X);
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
 	
-	void PluginButtonClicked();
-	
-private:
-	void RegisterMenus();
-
-	TSharedRef<class SDockTab> OnSpawnPluginTab(const class FSpawnTabArgs& SpawnTabArgs);
-
-private:
-	TSharedPtr<class FUICommandList> PluginCommands;
 };
