@@ -9,7 +9,7 @@
 struct FDT_LogElement;
 
 UCLASS(Blueprintable, BlueprintType)
-class UDT_LogElementInfo : public UObject
+class DEBUGTOOL_API UDT_LogElementInfo : public UObject
 {
     GENERATED_BODY()
 

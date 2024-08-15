@@ -32,7 +32,7 @@
     }                                                           \
     } while(false)
 
-#define DT_RETURN_NO_LOGGER(Expression) DT_RETURN_A(Expression, )
+#define DT_RETURN_NO_LOGGER(Expression) DT_RETURN_A_NO_LOGGER(Expression, )
 #pragma endregion NoLoggerMacros
 
 #pragma region BaseMacros
