@@ -18,6 +18,11 @@
 		{
 			"Name": "DebugTool",
 			"Type": "RuntimeAndProgram",
+			"LoadingPhase": "PreDefault"
+		},
+		{
+			"Name": "DebugToolEditor",
+			"Type": "Editor",
 			"LoadingPhase": "Default"
 		}
 	]
