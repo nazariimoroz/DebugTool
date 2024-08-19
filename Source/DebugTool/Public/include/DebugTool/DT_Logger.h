@@ -46,7 +46,6 @@
     if(const auto Logger = UDT_Logger::Get()) Logger->Error(DT_GET_CATEGORY_BY_FILENAME(__FILE__), __LINE__, TEXT(Format), __VA_ARGS__);        \
     } while(false)
 
-#pragma region BaseMacros
 #define DT_DISPLAY_A(Message) do {                                                                                                        \
     UE_LOGFMT(LogTemp, Display, "{0}", Message);                                                                                       \
     if(const auto Logger = UDT_Logger::Get()) Logger->Display(DT_GET_CATEGORY_BY_FILENAME(__FILE__), __LINE__, TEXT("{0}"), Message);  \
