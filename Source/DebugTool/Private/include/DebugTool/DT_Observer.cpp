@@ -3,13 +3,17 @@
 
 #include "DebugTool/DT_Observer.h"
 
-#include "EngineUtils.h"
 #include "DebugTool/DT_Logger.h"
+
+#if 0
+#include "EngineUtils.h"
+#endif
 
 UDT_Observer* UDT_Observer::Singleton = nullptr;
 
 UDT_Observer::UDT_Observer()
 {
+#if 0
     OnPostWorldInitializationCallbackHandle
         = FWorldDelegates::OnPostWorldInitialization.AddRaw(
             this, &UDT_Observer::OnPostWorldInitializationCallback);
@@ -23,17 +27,21 @@ UDT_Observer::UDT_Observer()
         this, &UDT_Observer::OnWorldTickStartCallback);
 
     bInited = true;
+#endif
 }
 
 UDT_Observer::~UDT_Observer()
 {
+#if 0
     FWorldDelegates::OnPostWorldInitialization.Remove(OnPostWorldInitializationCallbackHandle);
     FWorldDelegates::OnPreWorldFinishDestroy.Remove(OnPreWorldFinishDestroyCallbackHandle);
     FWorldDelegates::OnWorldTickStart.Remove(OnWorldTickStartCallbackHandle);
+#endif
 }
 
 void UDT_Observer::AddObservationProperty(UClass* ObservationClass, FName PropertyName)
 {
+    return;
     DT_RETURN_NO_LOGGER(bInited);
     DT_RETURN_NO_LOGGER(IsValid(ObservationClass));
 
@@ -59,6 +67,7 @@ void UDT_Observer::AddObservationProperty(UClass* ObservationClass, FName Proper
 
 void UDT_Observer::CleanUp()
 {
+    return;
     if (CurrentWorld)
     {
         if (OnActorSpawnedCallbackHandle.IsValid())
@@ -78,6 +87,8 @@ void UDT_Observer::CleanUp()
 
 void UDT_Observer::OnPostWorldInitializationCallback(UWorld* World, FWorldInitializationValues WorldInitializationValues)
 {
+#if 0
+
     if (!GEditor->IsPlaySessionInProgress()) return;
 
     if(CurrentWorld)
@@ -103,6 +114,7 @@ void UDT_Observer::OnPostWorldInitializationCallback(UWorld* World, FWorldInitia
             }
         }
     }
+#endif
 }
 
 void UDT_Observer::OnPreWorldFinishDestroyCallback(UWorld* World)
@@ -113,6 +125,7 @@ void UDT_Observer::OnPreWorldFinishDestroyCallback(UWorld* World)
 
 void UDT_Observer::OnWorldTickStartCallback(UWorld* World, ELevelTick LevelTick, float X)
 {
+    return;
     if (!GEditor->IsPlaySessionInProgress()) return;
 
     for (const auto& [_, ClassInfo] : ObservationInfo)
@@ -163,6 +176,7 @@ void UDT_Observer::OnWorldTickStartCallback(UWorld* World, ELevelTick LevelTick,
 
 void UDT_Observer::OnActorSpawnedCallback(AActor* Actor)
 {
+    /*
     if(!IsValid(Actor))
         return;
 
@@ -217,10 +231,12 @@ void UDT_Observer::OnActorSpawnedCallback(AActor* Actor)
 
         ClassInfo->CurrentAvailableActors.Add(MakeTuple(Actor, ActorInfo));
     }
+    */
 }
 
 void UDT_Observer::OnActorDestroyedCallback(AActor* Actor)
 {
+    /*
     if(!IsValid(Actor))
         return;
 
@@ -230,4 +246,5 @@ void UDT_Observer::OnActorDestroyedCallback(AActor* Actor)
 
         ClassInfo->CurrentAvailableActors.Remove(Actor);
     }
+    */
 }

@@ -35,16 +35,13 @@ public class DebugTool : ModuleRules
 			{
 				"Projects",
 				"InputCore",
-				"EditorFramework",
-				"UnrealEd",
+				//"EditorFramework",
 				"ToolMenus",
 				"CoreUObject",
 				"Engine",
 				"Slate",
 				"SlateCore",
-				"EditorScriptingUtilities",
-				"Blutility",
-				"UMGEditor",
+				//"Blutility",
 				"UMG",
 				"CommonUI"
 			}
