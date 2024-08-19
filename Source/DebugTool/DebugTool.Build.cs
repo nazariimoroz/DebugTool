@@ -36,7 +36,7 @@ public class DebugTool : ModuleRules
 				"Projects",
 				"InputCore",
 				//"EditorFramework",
-				"ToolMenus",
+				//"ToolMenus",
 				"CoreUObject",
 				"Engine",
 				"Slate",

@@ -41,7 +41,7 @@ UDT_Observer::~UDT_Observer()
 
 void UDT_Observer::AddObservationProperty(UClass* ObservationClass, FName PropertyName)
 {
-    return;
+#if 0
     DT_RETURN_NO_LOGGER(bInited);
     DT_RETURN_NO_LOGGER(IsValid(ObservationClass));
 
@@ -63,11 +63,12 @@ void UDT_Observer::AddObservationProperty(UClass* ObservationClass, FName Proper
         return;
 
     Info->Properties.Add(Property);
+#endif
 }
 
 void UDT_Observer::CleanUp()
 {
-    return;
+#if 0
     if (CurrentWorld)
     {
         if (OnActorSpawnedCallbackHandle.IsValid())
@@ -83,12 +84,12 @@ void UDT_Observer::CleanUp()
     {
         Info->CurrentAvailableActors.Reset();
     }
+#endif
 }
 
 void UDT_Observer::OnPostWorldInitializationCallback(UWorld* World, FWorldInitializationValues WorldInitializationValues)
 {
 #if 0
-
     if (!GEditor->IsPlaySessionInProgress()) return;
 
     if(CurrentWorld)
@@ -125,7 +126,7 @@ void UDT_Observer::OnPreWorldFinishDestroyCallback(UWorld* World)
 
 void UDT_Observer::OnWorldTickStartCallback(UWorld* World, ELevelTick LevelTick, float X)
 {
-    return;
+#if 0
     if (!GEditor->IsPlaySessionInProgress()) return;
 
     for (const auto& [_, ClassInfo] : ObservationInfo)
@@ -172,6 +173,7 @@ void UDT_Observer::OnWorldTickStartCallback(UWorld* World, ELevelTick LevelTick,
             }
         }
     }
+#endif
 }
 
 void UDT_Observer::OnActorSpawnedCallback(AActor* Actor)

@@ -83,12 +83,13 @@ UDT_Logger::UDT_Logger()
 #if WITH_EDITOR
     ReloadLogFileFromSettingsClass();
 #else
+    /*
     if(bUseLoggerFile)
     {
         FString FileDir = FPaths::AutomationLogDir();
         const auto FileName = FPaths::Combine(FileDir, FString::Printf(TEXT("Log_%hs.txt"), buf));
         LoggerFile.open(*FileName, std::ios::out);
-    }
+    }*/
 #endif
 
     bInited = true;
