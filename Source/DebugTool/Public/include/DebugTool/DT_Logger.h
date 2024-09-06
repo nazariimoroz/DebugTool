@@ -13,11 +13,11 @@
 
 #pragma region NoLoggerMacros
 #define DT_DISPLAY_NO_LOGGER(Format, ...) do {       \
-    UE_LOGFMT(LogTemp, Display, Format, __VA_ARGS__);\
+    UE_LOGFMT(LogTemp, Display, Format __VA_OPT__(,) __VA_ARGS__);\
     } while(false)
 
 #define DT_ERROR_NO_LOGGER(Format, ...) do {       \
-    UE_LOGFMT(LogTemp, Error, Format, __VA_ARGS__);\
+    UE_LOGFMT(LogTemp, Error, Format __VA_OPT__(,) __VA_ARGS__);\
     } while(false)
 
 #define DT_BREAKPOINT_NO_LOGGER() do {                                                        \
@@ -27,7 +27,7 @@
 #define DT_RETURN_A_NO_LOGGER(Expression, TO_RET) do {          \
     if(!(Expression))                                           \
     {                                                           \
-        DT_ERROR_NO_LOGGER("{}", #Expression);                  \
+        DT_ERROR_NO_LOGGER("{0}", #Expression);                 \
         return TO_RET;                                          \
     }                                                           \
     } while(false)
@@ -37,20 +37,22 @@
 
 #pragma region BaseMacros
 #define DT_DISPLAY(Format, ...) do {                                                                                                        \
-    UE_LOGFMT(LogTemp, Display, Format, __VA_ARGS__);                                                                                       \
-    if(const auto Logger = UDT_Logger::Get()) Logger->Display(DT_GET_CATEGORY_BY_FILENAME(__FILE__), __LINE__, TEXT(Format), __VA_ARGS__);  \
+    UE_LOGFMT(LogTemp, Display, Format __VA_OPT__(,) __VA_ARGS__);                                                                                       \
+    if(const auto Logger = UDT_Logger::Get()) Logger->Display(DT_GET_CATEGORY_BY_FILENAME(__FILE__), __LINE__, TEXT(Format) __VA_OPT__(,) __VA_ARGS__);  \
     } while(false)
 
 #define DT_ERROR(Format, ...) do {                                                                                                              \
-    UE_LOGFMT(LogTemp, Error, Format, __VA_ARGS__);                                                                                             \
-    if(const auto Logger = UDT_Logger::Get()) Logger->Error(DT_GET_CATEGORY_BY_FILENAME(__FILE__), __LINE__, TEXT(Format), __VA_ARGS__);        \
+    UE_LOGFMT(LogTemp, Error, Format __VA_OPT__(,) __VA_ARGS__);                                                                                             \
+    if(const auto Logger = UDT_Logger::Get()) Logger->Error(DT_GET_CATEGORY_BY_FILENAME(__FILE__), __LINE__, TEXT(Format) __VA_OPT__(,) __VA_ARGS__);        \
     } while(false)
 
+// DEPRECATED
 #define DT_DISPLAY_A(Message) do {                                                                                                        \
     UE_LOGFMT(LogTemp, Display, "{0}", Message);                                                                                       \
     if(const auto Logger = UDT_Logger::Get()) Logger->Display(DT_GET_CATEGORY_BY_FILENAME(__FILE__), __LINE__, TEXT("{0}"), Message);  \
     } while(false)
 
+// DEPRECATED
 #define DT_ERROR_A(Message) do {                                                                                                              \
     UE_LOGFMT(LogTemp, Error, "{0}", Message);                                                                                             \
     if(const auto Logger = UDT_Logger::Get()) Logger->Error(DT_GET_CATEGORY_BY_FILENAME(__FILE__), __LINE__, TEXT("{0}"), Message);        \
