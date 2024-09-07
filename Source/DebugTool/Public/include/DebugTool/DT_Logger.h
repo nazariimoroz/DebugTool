@@ -43,6 +43,11 @@ DEFINE_LOG_CATEGORY_STATIC(LogDebugTool, All, All)
     if(const auto Logger = UDT_Logger::Get()) Logger->Display(DT_GET_CATEGORY_BY_FILENAME(__FILE__), __LINE__, TEXT(Format) __VA_OPT__(,) __VA_ARGS__);  \
     } while(false)
 
+#define DT_WARNING(Format, ...) do {                                                                                                              \
+    UE_LOGFMT(LogDebugTool, Warning, Format __VA_OPT__(,) __VA_ARGS__);                                                                                             \
+    if(const auto Logger = UDT_Logger::Get()) Logger->Warning(DT_GET_CATEGORY_BY_FILENAME(__FILE__), __LINE__, TEXT(Format) __VA_OPT__(,) __VA_ARGS__);        \
+    } while(false)
+
 #define DT_ERROR(Format, ...) do {                                                                                                              \
     UE_LOGFMT(LogDebugTool, Error, Format __VA_OPT__(,) __VA_ARGS__);                                                                                             \
     if(const auto Logger = UDT_Logger::Get()) Logger->Error(DT_GET_CATEGORY_BY_FILENAME(__FILE__), __LINE__, TEXT(Format) __VA_OPT__(,) __VA_ARGS__);        \
@@ -69,6 +74,9 @@ DEFINE_LOG_CATEGORY_STATIC(LogDebugTool, All, All)
 #pragma region ChainedMacros
 #define DT_CHAINED_DISPLAY() \
     if(const auto Logger = UDT_Logger::Get()) Logger->CreateChainLogger(ELogVerbosity::Display ,DT_GET_CATEGORY_BY_FILENAME(__FILE__), __LINE__)
+
+#define DT_CHAINED_WARNING() \
+    if(const auto Logger = UDT_Logger::Get()) Logger->CreateChainLogger(ELogVerbosity::Warning ,DT_GET_CATEGORY_BY_FILENAME(__FILE__), __LINE__)
 
 #define DT_CHAINED_ERROR() \
     if(const auto Logger = UDT_Logger::Get()) Logger->CreateChainLogger(ELogVerbosity::Error ,DT_GET_CATEGORY_BY_FILENAME(__FILE__), __LINE__)
@@ -116,6 +124,8 @@ struct FDT_LogElement
         switch (LogVerbosity)
         {
             case ELogVerbosity::Display: LogVerbosityColor = FLinearColor::White;
+                break;
+            case ELogVerbosity::Warning: LogVerbosityColor = FLinearColor::Yellow;
                 break;
             case ELogVerbosity::Error: LogVerbosityColor = FLinearColor::Red;
                 break;
@@ -223,6 +233,12 @@ public:
     void Display(const std::string& Category, const uint64 Line, const FStringView& Format, T... Args)
     {
         WriteLineFormat(ELogVerbosity::Display, Category, Line, Format, Args...);
+    }
+
+    template <class... T>
+    void Warning(const std::string& Category, const uint64 Line, const FStringView& Format, T... Args)
+    {
+        WriteLineFormat(ELogVerbosity::Warning, Category, Line, Format, Args...);
     }
 
     template <class... T>
