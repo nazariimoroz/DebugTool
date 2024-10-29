@@ -133,7 +133,7 @@ void UDT_Logger::WriteLine(const ELogVerbosity::Type LogVerbosity, const std::st
         }
         else
         {
-            DT_ERROR_NO_LOGGER("{0}", "LoggerFile is closed");
+            // DT_ERROR_NO_LOGGER("{0}", "LoggerFile is closed");
         }
     }
 }
