@@ -13,6 +13,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogDebugTool, All, All)
 #define TO_STR(TO_CONV) #TO_CONV
 #define TO_STR_COV(TO_CONV) TO_STR(TO_CONV)
 
+#define LOG_DEBUG_INFO __FILE__ "(" TO_STR_COV(__LINE__) "): "
+
 #pragma region NoLoggerMacros
 #define DT_DISPLAY_NO_LOGGER(Format, ...) do {       \
     UE_LOGFMT(LogDebugTool, Display, Format __VA_OPT__(,) __VA_ARGS__);\
@@ -39,17 +41,17 @@ DEFINE_LOG_CATEGORY_STATIC(LogDebugTool, All, All)
 
 #pragma region BaseMacros
 #define DT_DISPLAY(Format, ...) do {                                                                                                        \
-    UE_LOGFMT(LogDebugTool, Display, Format __VA_OPT__(,) __VA_ARGS__);                                                                                       \
+    UE_LOGFMT(LogDebugTool, Display, LOG_DEBUG_INFO Format __VA_OPT__(,) __VA_ARGS__);                                                                                       \
     if(const auto Logger = UDT_Logger::Get()) Logger->Display(DT_GET_CATEGORY_BY_FILENAME(__FILE__), __LINE__, TEXT(Format) __VA_OPT__(,) __VA_ARGS__);  \
     } while(false)
 
 #define DT_WARNING(Format, ...) do {                                                                                                              \
-    UE_LOGFMT(LogDebugTool, Warning, Format __VA_OPT__(,) __VA_ARGS__);                                                                                             \
+    UE_LOGFMT(LogDebugTool, Warning, LOG_DEBUG_INFO Format __VA_OPT__(,) __VA_ARGS__);                                                                                             \
     if(const auto Logger = UDT_Logger::Get()) Logger->Warning(DT_GET_CATEGORY_BY_FILENAME(__FILE__), __LINE__, TEXT(Format) __VA_OPT__(,) __VA_ARGS__);        \
     } while(false)
 
 #define DT_ERROR(Format, ...) do {                                                                                                              \
-    UE_LOGFMT(LogDebugTool, Error, Format __VA_OPT__(,) __VA_ARGS__);                                                                                             \
+    UE_LOGFMT(LogDebugTool, Error, LOG_DEBUG_INFO Format __VA_OPT__(,) __VA_ARGS__);                                                                                             \
     if(const auto Logger = UDT_Logger::Get()) Logger->Error(DT_GET_CATEGORY_BY_FILENAME(__FILE__), __LINE__, TEXT(Format) __VA_OPT__(,) __VA_ARGS__);        \
     } while(false)
 
