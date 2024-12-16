@@ -13,14 +13,6 @@
 #include "Styling/CoreStyle.h"
 #include "Engine/Font.h"
 
-struct SDT_LoggerTabSlate_LogInfo
-{
-    FString Log;
-    FString NLAfterText;
-    TOptional<bool> NLSetted;
-    int32 NLIter;
-};
-
 void SDT_LoggerTabSlate::Construct(const FArguments& InArgs)
 {
     MonoFont = LoadObject<UFont>(nullptr, TEXT("/DebugTool/UI/Fonts/F_Mono.F_Mono"));
@@ -225,6 +217,13 @@ TSharedRef<SWidget> SDT_LoggerTabSlate::MakeBlueSquareButton(const FString& Butt
         ];
 }
 
+struct SDT_LoggerTabSlate_LogInfo
+{
+    FString Log;
+    FString NLAfterText;
+    TOptional<bool> NLSetted;
+    int32 NLIter;
+};
 
 TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateLoggerListWidget()
 {
@@ -235,62 +234,79 @@ TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateLoggerListWidget()
         const auto Items = Logger->GetLastLogsInGame();
         for (const auto& Item : Items)
         {
-            TSharedPtr<SDT_LoggerTabSlate_LogInfo> LogInfo{ new SDT_LoggerTabSlate_LogInfo{} };
-            LogInfo->Log = Item.GetFullText();
-
-            int32 NLIter = 0;
-            if (LogInfo->Log.FindChar('\n', NLIter))
-            {
-                LogInfo->NLSetted = false;
-                LogInfo->NLIter = NLIter;
-                LogInfo->NLAfterText = LogInfo->Log.Mid(NLIter + 1);
-                LogInfo->Log = LogInfo->Log.Left(NLIter);
-                LogInfo->Log += " ...";
-            }
-
-            const auto ColorLambda = [this, Item]() {
-                switch (Item.GetLogVerbosity())
-                {
-                    case ELogVerbosity::Log : return FLinearColor(0.f,0.f,0.f,1.f);
-                    case ELogVerbosity::Warning: return FLinearColor(0.3f,0.3f,0.f,1.f);
-                    case ELogVerbosity::Error: return FLinearColor(0.3f,0.f,0.f,1.f);
-                    default: return FLinearColor(0.f,0.f,0.f,0.f);
-                }
-            };
-
             LoggerListBox->AddSlot()
             .AutoHeight()
             .Padding(2)
             [
-                SNew(SButton)
-                .ButtonColorAndOpacity_Lambda(ColorLambda)
-                .ContentPadding(FMargin(3))
-                .OnClicked_Lambda([LogInfo] {
-                    if (!LogInfo->NLSetted.IsSet())
-                        return FReply::Handled();
-
-                    *LogInfo->NLSetted = !*LogInfo->NLSetted;
-
-                    if (*LogInfo->NLSetted)
-                    {
-                        LogInfo->Log.RemoveFromEnd(" ...");
-                        LogInfo->Log += '\n';
-                        LogInfo->Log += LogInfo->NLAfterText;
-                        return FReply::Handled();
-                    }
-
-                    LogInfo->Log = LogInfo->Log.Left(LogInfo->NLIter);
-                    LogInfo->Log += " ...";
-                    return FReply::Handled();
-                })
-                [
-                    SNew(STextBlock)
-                    .Text_Lambda([LogInfo]{ return FText::FromString(LogInfo->Log); })
-                    .Font(FSlateFontInfo(Cast<UObject>(MonoFont), 10))
-                ]
+                GenerateLogItemWidget(Item)
             ];
         }
     }
 
     return LoggerListBox.ToSharedRef();
+}
+
+TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateLogItemWidget(const FDT_LogElement& LogElement)
+{
+    TSharedPtr<SDT_LoggerTabSlate_LogInfo> LogInfo{new SDT_LoggerTabSlate_LogInfo{}};
+    LogInfo->Log = LogElement.GetFullText();
+
+    int32 NLIter = 0;
+    if (LogInfo->Log.FindChar('\n', NLIter))
+    {
+        LogInfo->NLSetted    = false;
+        LogInfo->NLIter      = NLIter;
+        LogInfo->NLAfterText = LogInfo->Log.Mid(NLIter + 1);
+        LogInfo->Log         = LogInfo->Log.Left(NLIter);
+        LogInfo->Log         += " ...";
+    }
+
+    const auto Color = ([&LogElement]() {
+        switch (LogElement.GetLogVerbosity())
+        {
+            case ELogVerbosity::Log:
+                return FLinearColor(0.f, 0.f, 0.f, 1.f);
+            case ELogVerbosity::Warning:
+                return FLinearColor(0.3f, 0.3f, 0.f, 1.f);
+            case ELogVerbosity::Error:
+                return FLinearColor(0.3f, 0.f, 0.f, 1.f);
+            default:
+                return FLinearColor(0.f, 0.f, 0.f, 0.f);
+        }
+    })();
+
+    const auto OnClick = [LogInfo]
+    {
+        if (!LogInfo->NLSetted.IsSet())
+            return FReply::Handled();
+
+        *LogInfo->NLSetted = !*LogInfo->NLSetted;
+
+        if (*LogInfo->NLSetted)
+        {
+            LogInfo->Log.RemoveFromEnd(" ...");
+            LogInfo->Log += '\n';
+            LogInfo->Log += LogInfo->NLAfterText;
+            return FReply::Handled();
+        }
+
+        LogInfo->Log = LogInfo->Log.Left(LogInfo->NLIter);
+        LogInfo->Log += " ...";
+        return FReply::Handled();
+    };
+
+    const auto GetText = [LogInfo]
+    {
+        return FText::FromString(LogInfo->Log);
+    };
+
+    return SNew(SButton)
+           .ButtonColorAndOpacity(Color)
+           .ContentPadding(FMargin(3))
+           .OnClicked_Lambda(OnClick)
+            [
+               SNew(STextBlock)
+               .Text_Lambda(GetText)
+               .Font(FSlateFontInfo(Cast<UObject>(MonoFont), 10))
+           ];
 }

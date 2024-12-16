@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Widgets/SCompoundWidget.h"
 
+struct FDT_LogElement;
 class UFont;
 
 class SDT_LoggerTabSlate : public SCompoundWidget
@@ -16,11 +17,6 @@ public:
   void Construct(const FArguments& InArgs);
 
 protected:
-    bool bB1Enabled = true;
-    bool bB2Enabled = true;
-    bool bB3Enabled = true;
-    UFont* MonoFont;
-
     TSharedRef<SWidget> MakeToggleButton(TAttribute<FLinearColor> EnabledColor, TAttribute<FLinearColor> DisabledColor,
                                          TAttribute<bool> EnabledState, FOnClicked OnClicked);
 
@@ -35,6 +31,14 @@ protected:
     TSharedRef<SWidget> MakeBlueSquareButton(const FString& ButtonLabel);
 
     TSharedRef<SWidget> GenerateLoggerListWidget();
+
+    TSharedRef<SWidget> GenerateLogItemWidget(const FDT_LogElement& LogElement);
+
+private:
+    bool bB1Enabled = true;
+    bool bB2Enabled = true;
+    bool bB3Enabled = true;
+    UFont* MonoFont;
 
     TSharedPtr<SVerticalBox> LoggerListBox = nullptr;
 
