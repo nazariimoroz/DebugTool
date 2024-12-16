@@ -3,6 +3,8 @@
 #include "CoreMinimal.h"
 #include "Widgets/SCompoundWidget.h"
 
+class UFont;
+
 class SDT_LoggerTabSlate : public SCompoundWidget
 {
   public:
@@ -18,6 +20,7 @@ class SDT_LoggerTabSlate : public SCompoundWidget
     bool bB1Enabled = true;
     bool bB2Enabled = true;
     bool bB3Enabled = true;
+    UFont* MonoFont;
 
     // Helper to build a toggleable color button
     TSharedRef<SWidget> MakeToggleButton(TAttribute<FLinearColor> EnabledColor, TAttribute<FLinearColor> DisabledColor,
@@ -33,6 +36,6 @@ class SDT_LoggerTabSlate : public SCompoundWidget
 
     // Existing code...
     TSharedRef<SWidget> MakeBlueSquareButton(const FString& ButtonLabel);
-    TSharedRef<SWidget> GenerateListWidget() const;
+    TSharedRef<SWidget> GenerateListWidget();
 };
 

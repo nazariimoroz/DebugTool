@@ -101,12 +101,43 @@ constexpr std::string DT_GET_CATEGORY_BY_FILENAME(std::string InFileName)
     return InFileName.substr(BeginPos, EndPos - BeginPos);
 }
 
+FORCEINLINE FString DT_GET_STACKTRACE()
+{
+    const SIZE_T StackTraceSize = 65535;
+    ANSICHAR* StackTrace = (ANSICHAR*)FMemory::SystemMalloc(StackTraceSize);
+
+    {
+        StackTrace[0] = 0;
+
+        const int32 NumStackFramesToIgnore = 2;
+        FPlatformStackWalk::StackWalkAndDumpEx(StackTrace, StackTraceSize, NumStackFramesToIgnore, FGenericPlatformStackWalk::EStackWalkFlags::FlagsUsedWhenHandlingEnsure);
+    }
+
+    FString ToRet = StackTrace;
+
+    FMemory::SystemFree(StackTrace);
+
+    return ToRet;
+}
+
 class FDebugToolModule;
 
 struct FDT_LogElement
 {
     FText LogText;
     FLinearColor LogVerbosityColor;
+    TOptional<FString> StackTrace;
+
+    FString GetFullText() const
+    {
+        FString ToRet = LogText.ToString();
+        if (StackTrace)
+        {
+            ToRet += TEXT("\n\n");
+            ToRet += *StackTrace;
+        }
+        return ToRet;
+    }
 
     void SetLogVerbosity(const ELogVerbosity::Type InLogVerbosity)
     {

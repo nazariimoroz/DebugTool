@@ -11,6 +11,7 @@
 #include "Widgets/Layout/SScrollBox.h"
 #include "Widgets/Views/SListView.h"
 #include "Styling/CoreStyle.h"
+#include "Engine/Font.h"
 
 struct SDT_LoggerTabSlate_LogInfo
 {
@@ -22,6 +23,13 @@ struct SDT_LoggerTabSlate_LogInfo
 
 void SDT_LoggerTabSlate::Construct(const FArguments& InArgs)
 {
+    MonoFont = LoadObject<UFont>(nullptr, TEXT("/DebugTool/UI/Fonts/F_Mono.F_Mono"));
+    if (!MonoFont)
+    {
+        DT_ERROR_NO_LOGGER("Cant get MonoFont");
+        return;
+    }
+
     ChildSlot
     [
         SNew(SBorder)
@@ -211,7 +219,7 @@ TSharedRef<SWidget> SDT_LoggerTabSlate::MakeBlueSquareButton(const FString& Butt
 }
 
 
-TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateListWidget() const
+TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateListWidget()
 {
     TSharedRef<SVerticalBox> ListBox = SNew(SVerticalBox);
 
@@ -221,7 +229,7 @@ TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateListWidget() const
         for (const auto& Item : Items)
         {
             TSharedPtr<SDT_LoggerTabSlate_LogInfo> LogInfo{ new SDT_LoggerTabSlate_LogInfo{} };
-            LogInfo->Log = Item.LogText.ToString();
+            LogInfo->Log = Item.GetFullText();
 
             int32 NLIter = 0;
             if (LogInfo->Log.FindChar('\n', NLIter))
@@ -236,7 +244,7 @@ TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateListWidget() const
             const auto ColorLambda = [this, Item]() {
                 switch (Item.GetLogVerbosity())
                 {
-                    case ELogVerbosity::Log : return FLinearColor(0.f,0.f,0.f,0.f);
+                    case ELogVerbosity::Log : return FLinearColor(0.f,0.f,0.f,1.f);
                     case ELogVerbosity::Warning: return FLinearColor(0.3f,0.3f,0.f,1.f);
                     case ELogVerbosity::Error: return FLinearColor(0.3f,0.f,0.f,1.f);
                     default: return FLinearColor(0.f,0.f,0.f,0.f);
@@ -249,7 +257,7 @@ TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateListWidget() const
             [
                 SNew(SButton)
                 .ButtonColorAndOpacity_Lambda(ColorLambda)
-                .ContentPadding(FMargin(5))
+                .ContentPadding(FMargin(3))
                 .OnClicked_Lambda([LogInfo] {
                     if (!LogInfo->NLSetted.IsSet())
                         return FReply::Handled();
@@ -271,7 +279,7 @@ TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateListWidget() const
                 [
                     SNew(STextBlock)
                     .Text_Lambda([LogInfo]{ return FText::FromString(LogInfo->Log); })
-                    .Font(FCoreStyle::GetDefaultFontStyle("Regular", 12))
+                    .Font(FSlateFontInfo(Cast<UObject>(MonoFont), 10))
                 ]
             ];
         }

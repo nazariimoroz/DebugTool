@@ -115,6 +115,10 @@ void UDT_Logger::WriteLine(const ELogVerbosity::Type LogVerbosity, const std::st
     auto LogElement = FDT_LogElement();
     LogElement.LogText = FinalText;
     LogElement.SetLogVerbosity(LogVerbosity);
+    if (LogVerbosity == ELogVerbosity::Error)
+    {
+        LogElement.StackTrace = DT_GET_STACKTRACE();
+    }
 
     if (bUseDelegates) OnAddLogDelegate.Broadcast(LogElement);
     LoggerList.AddTail(LogElement);
