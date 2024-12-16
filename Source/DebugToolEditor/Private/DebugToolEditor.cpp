@@ -8,6 +8,7 @@
 #include "Widgets/Docking/SDockTab.h"
 #include "EditorUtilitySubsystem.h"
 #include "ToolMenus.h"
+#include "Slate/DT_LoggerTabSlate.h"
 
 static const FName DebugToolEditorTabName("DebugToolEditor");
 
@@ -15,72 +16,56 @@ static const FName DebugToolEditorTabName("DebugToolEditor");
 
 void FDebugToolEditorModule::StartupModule()
 {
-	FDebugToolEditorStyle::Initialize();
-	FDebugToolEditorStyle::ReloadTextures();
+    FDebugToolEditorStyle::Initialize();
+    FDebugToolEditorStyle::ReloadTextures();
 
-	FDebugToolEditorCommands::Register();
-	
-	PluginCommands = MakeShareable(new FUICommandList);
+    FDebugToolEditorCommands::Register();
 
-	PluginCommands->MapAction(
-		FDebugToolEditorCommands::Get().OpenPluginWindow,
-		FExecuteAction::CreateRaw(this, &FDebugToolEditorModule::PluginButtonClicked),
-		FCanExecuteAction());
+    PluginCommands = MakeShareable(new FUICommandList);
 
-	UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FDebugToolEditorModule::RegisterMenus));
+    PluginCommands->MapAction(
+        FDebugToolEditorCommands::Get().OpenPluginWindow, FExecuteAction::CreateRaw(this, &FDebugToolEditorModule::PluginButtonClicked), FCanExecuteAction());
+
+    UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FDebugToolEditorModule::RegisterMenus));
 
     /*
-	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(DebugToolEditorTabName, FOnSpawnTab::CreateRaw(this, &FDebugToolEditorModule::OnSpawnPluginTab))
-		.SetDisplayName(LOCTEXT("FDebugToolEditorTabTitle", "DebugToolEditor"))
-		.SetMenuType(ETabSpawnerMenuType::Hidden);*/
-
     FGlobalTabmanager::Get()->RegisterNomadTabSpawner(DebugToolEditorTabName, FOnSpawnTab::CreateRaw(this, &FDebugToolEditorModule::OnSpawnPluginTab))
-                        .SetDisplayName(LOCTEXT("FDebugToolTabTitle", "DebugTool"))
-                        .SetMenuType(ETabSpawnerMenuType::Hidden);
+        .SetDisplayName(LOCTEXT("FDebugToolEditorTabTitle", "DebugToolEditor"))
+        .SetMenuType(ETabSpawnerMenuType::Hidden);*/
+
+    FGlobalTabmanager::Get()
+        ->RegisterNomadTabSpawner(DebugToolEditorTabName, FOnSpawnTab::CreateRaw(this, &FDebugToolEditorModule::OnSpawnPluginTab))
+        .SetDisplayName(LOCTEXT("FDebugToolTabTitle", "DebugTool"))
+        .SetMenuType(ETabSpawnerMenuType::Hidden);
 }
 
 void FDebugToolEditorModule::ShutdownModule()
 {
-	UToolMenus::UnRegisterStartupCallback(this);
+    UToolMenus::UnRegisterStartupCallback(this);
 
-	UToolMenus::UnregisterOwner(this);
+    UToolMenus::UnregisterOwner(this);
 
-	FDebugToolEditorStyle::Shutdown();
+    FDebugToolEditorStyle::Shutdown();
 
-	FDebugToolEditorCommands::Unregister();
+    FDebugToolEditorCommands::Unregister();
 
-	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(DebugToolEditorTabName);
+    FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(DebugToolEditorTabName);
 }
 
 TSharedRef<SDockTab> FDebugToolEditorModule::OnSpawnPluginTab(const FSpawnTabArgs& SpawnTabArgs)
 {
-    UObject* Blueprint = UEditorAssetLibrary::LoadAsset(FString(TEXT("/DebugTool/UI/InEditor/WB_InEditorLogger")));
-    if (Blueprint)
-    {
-        UEditorUtilityWidgetBlueprint* EditorWidgetBlueprint = Cast<UEditorUtilityWidgetBlueprint>(Blueprint);
-        if (EditorWidgetBlueprint)
-        {
-            UEditorUtilitySubsystem* EditorUtilitySubsystem = GEditor->GetEditorSubsystem<UEditorUtilitySubsystem>();
-            if (EditorUtilitySubsystem)
-            {
-                FName ID;
-                UEditorUtilityWidget* EditorWidget = EditorUtilitySubsystem->SpawnAndRegisterTabAndGetID(EditorWidgetBlueprint, ID);
-
-                if (EditorWidget)
-                {
-                    auto DockTab = SNew(SDockTab).TabRole(ETabRole::NomadTab)[EditorWidget->TakeWidget()];
-                    EditorUtilitySubsystem->CloseTabByID(ID);
-                    return DockTab;
-                }
-            }
-        }
-    }
-    return SNew(SDockTab);
+    auto DockTab = SNew(SDockTab)
+        .TabRole(ETabRole::NomadTab)
+        [
+            SNew(SDT_LoggerTabSlate)
+            .ItemList({TEXT("Item1"), TEXT("Item2"), TEXT("Item3")})
+        ];
+    return DockTab;
 }
 
 void FDebugToolEditorModule::PluginButtonClicked()
 {
-	FGlobalTabmanager::Get()->TryInvokeTab(DebugToolEditorTabName);
+    FGlobalTabmanager::Get()->TryInvokeTab(DebugToolEditorTabName);
 }
 
 void FDebugToolEditorModule::RegisterMenus()
@@ -100,5 +85,5 @@ void FDebugToolEditorModule::RegisterMenus()
 }
 
 #undef LOCTEXT_NAMESPACE
-	
+
 IMPLEMENT_MODULE(FDebugToolEditorModule, DebugToolEditor)
