@@ -134,6 +134,8 @@ void SDT_LoggerTabSlate::Construct(const FArguments& InArgs)
             + SVerticalBox::Slot().FillHeight(1.0f).Padding(5)
             [
                 SNew(SScrollBox)
+                .Tag("ScrollBox")
+
                 + SScrollBox::Slot()
                 [
                     SNew(SVerticalBox)
@@ -220,6 +222,8 @@ TSharedRef<SWidget> SDT_LoggerTabSlate::MakeBlueSquareButton(const FString& Butt
 struct SDT_LoggerTabSlate_LogInfo
 {
     FString Log;
+    ELogVerbosity::Type Verbosity;
+
     FString NLAfterText;
     TOptional<bool> NLSetted;
     int32 NLIter;
@@ -227,29 +231,76 @@ struct SDT_LoggerTabSlate_LogInfo
 
 TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateLoggerListWidget()
 {
-    LoggerListBox = LoggerListBox.Get() ? LoggerListBox : SNew(SVerticalBox);
-
-    if (const auto Logger = UDT_Logger::Get())
+    const auto Logger = UDT_Logger::Get();
+    if (!Logger)
     {
-        const auto Items = Logger->GetLastLogsInGame();
-        for (const auto& Item : Items)
+        DT_ERROR_NO_LOGGER("Cant get logger");
+    }
+
+    if (!LoggerListBox)
+    {
+        LoggerListBox = SNew(SVerticalBox);
+
+        Logger->OnAddLogDelegate.AddSPLambda(this,
+        [this](FDT_LogElement LogInfo)
         {
-            LoggerListBox->AddSlot()
-            .AutoHeight()
-            .Padding(2)
-            [
-                GenerateLogItemWidget(Item)
-            ];
-        }
+            if (!LoggerListBox) return;
+
+            SScrollBox* ScrollBox = nullptr;
+            bool ShouldScroll = false;
+            //TODO: refactor
+            for (auto i = LoggerListBox->GetParentWidget(); ; i = i->GetParentWidget())
+            {
+                if (!i.Get())
+                    break;
+
+                if (i->GetTag() == "ScrollBox")
+                {
+                    ScrollBox = static_cast<SScrollBox*>(i.Get());
+                    float CurrentOffset = ScrollBox->GetScrollOffset();
+                    float EndOffset = ScrollBox->GetScrollOffsetOfEnd();
+
+                    ShouldScroll = FMath::IsNearlyEqual(CurrentOffset, EndOffset, KINDA_SMALL_NUMBER);
+
+                    break;
+                }
+            }
+
+            AddItemToLoggerListWidget(LogInfo);
+
+            if (ShouldScroll && ScrollBox)
+            {
+                ScrollBox->ScrollToEnd();
+            }
+        });
+    }
+
+    const auto Items = Logger->GetLastLogsInGame();
+    for (const auto& Item : Items)
+    {
+        AddItemToLoggerListWidget(Item);
     }
 
     return LoggerListBox.ToSharedRef();
+}
+
+void SDT_LoggerTabSlate::AddItemToLoggerListWidget(const FDT_LogElement& LogElement)
+{
+    if (!LoggerListBox) return;
+
+    LoggerListBox->AddSlot()
+    .AutoHeight()
+    .Padding(2)
+    [
+        GenerateLogItemWidget(LogElement)
+    ];
 }
 
 TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateLogItemWidget(const FDT_LogElement& LogElement)
 {
     TSharedPtr<SDT_LoggerTabSlate_LogInfo> LogInfo{new SDT_LoggerTabSlate_LogInfo{}};
     LogInfo->Log = LogElement.GetFullText();
+    LogInfo->Verbosity = LogElement.GetLogVerbosity();
 
     int32 NLIter = 0;
     if (LogInfo->Log.FindChar('\n', NLIter))

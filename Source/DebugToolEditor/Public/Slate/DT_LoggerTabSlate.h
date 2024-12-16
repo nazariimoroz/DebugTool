@@ -31,7 +31,7 @@ protected:
     TSharedRef<SWidget> MakeBlueSquareButton(const FString& ButtonLabel);
 
     TSharedRef<SWidget> GenerateLoggerListWidget();
-
+    void AddItemToLoggerListWidget(const FDT_LogElement& LogElement);
     TSharedRef<SWidget> GenerateLogItemWidget(const FDT_LogElement& LogElement);
 
 private:
