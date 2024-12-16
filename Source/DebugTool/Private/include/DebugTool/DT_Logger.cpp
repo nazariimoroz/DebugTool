@@ -8,9 +8,10 @@
 
 #include "DT_Settings.h"
 
-UDT_ChainLogger::UDT_ChainLogger(const ELogVerbosity::Type InLogVerbosity, const std::string& InCategory, const uint64 InLine): LogVerbosity(InLogVerbosity)
-                                                                                                                                , Category(InCategory)
-                                                                                                                                , Line(InLine)
+UDT_ChainLogger::UDT_ChainLogger(const ELogVerbosity::Type InLogVerbosity, const std::string& InCategory, const uint64 InLine)
+    : LogVerbosity(InLogVerbosity)
+    , Category(InCategory)
+    , Line(InLine)
 {}
 
 UDT_ChainLogger::~UDT_ChainLogger()
