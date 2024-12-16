@@ -1,51 +1,38 @@
-// TTVideoGenerator by Nazarii Moroz
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Widgets/SCompoundWidget.h"
 
-class DEBUGTOOLEDITOR_API SDT_LoggerTabSlate : public SCompoundWidget
+class SDT_LoggerTabSlate : public SCompoundWidget
 {
-public:
-    SLATE_BEGIN_ARGS(SDT_LoggerTabSlate){}
-        SLATE_ARGUMENT(TArray<FString>, ItemList)
+  public:
+    SLATE_BEGIN_ARGS(SDT_LoggerTabSlate)
+    {
+    }
     SLATE_END_ARGS()
 
     void Construct(const FArguments& InArgs);
 
-    TSharedRef<SWidget> MakeBlueSquareButton(const FString& ButtonLabel)
-    {
-        return SNew(SButton)
-        .ButtonColorAndOpacity(FLinearColor::Blue)
-        .ContentPadding(FMargin(8))
-        .HAlign(HAlign_Center)
-        .VAlign(VAlign_Center)
-        .OnClicked(this, &SDT_LoggerTabSlate::OnBlueButtonClicked, ButtonLabel)
-        [
-            SNew(STextBlock)
-            .Text(FText::FromString(ButtonLabel))
-            .Font(FCoreStyle::GetDefaultFontStyle("Bold", 10))
-            .ColorAndOpacity(FLinearColor::White)
-        ];
-    }
+  private:
+    // State booleans for each button
+    bool bB1Enabled = true;
+    bool bB2Enabled = true;
+    bool bB3Enabled = true;
 
-    FReply OnRefreshClicked()
-    {
-        // Handle refresh logic here
-        return FReply::Handled();
-    }
+    // Helper to build a toggleable color button
+    TSharedRef<SWidget> MakeToggleButton(TAttribute<FLinearColor> EnabledColor, TAttribute<FLinearColor> DisabledColor,
+                                         TAttribute<bool> EnabledState, FOnClicked OnClicked);
 
-    FReply OnBlueButtonClicked(FString ButtonLabel)
-    {
-        // Handle blue button logic here
-        return FReply::Handled();
-    }
+    // Separate handlers for each button click
+    FReply OnB1Clicked();
+    FReply OnB2Clicked();
+    FReply OnB3Clicked();
 
-private:
+    // Existing code...
+    FReply OnRefreshClicked();
 
-    TSharedRef<ITableRow> OnGenerateRowForList(
-        TSharedPtr<FString> Item,
-        const TSharedRef<STableViewBase>& OwnerTable
-    ) const;
+    // Existing code...
+    TSharedRef<SWidget> MakeBlueSquareButton(const FString& ButtonLabel);
+    TSharedRef<SWidget> GenerateListWidget() const;
 };
+

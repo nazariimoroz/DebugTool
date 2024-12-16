@@ -58,7 +58,6 @@ TSharedRef<SDockTab> FDebugToolEditorModule::OnSpawnPluginTab(const FSpawnTabArg
         .TabRole(ETabRole::NomadTab)
         [
             SNew(SDT_LoggerTabSlate)
-            .ItemList({TEXT("Item1"), TEXT("Item2"), TEXT("Item3")})
         ];
     return DockTab;
 }
