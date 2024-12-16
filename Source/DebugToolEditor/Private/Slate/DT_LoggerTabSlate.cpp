@@ -52,7 +52,7 @@ void SDT_LoggerTabSlate::Construct(const FArguments& InArgs)
                     .OnClicked(this, &SDT_LoggerTabSlate::OnRefreshClicked)
                     [
                         SNew(STextBlock)
-                        .Text(FText::FromString("REFRESH"))
+                        .Text(FText::FromString("Refresh"))
                         .Font(FCoreStyle::GetDefaultFontStyle("Bold", 14))
                     ]
                 ]
@@ -123,10 +123,10 @@ void SDT_LoggerTabSlate::Construct(const FArguments& InArgs)
                     SNew(SButton)
                     .ButtonStyle(&FCoreStyle::Get().GetWidgetStyle<FButtonStyle>("Button"))
                     .ContentPadding(FMargin(10, 5))
-                    .OnClicked(this, &SDT_LoggerTabSlate::OnRefreshClicked)
+                    .OnClicked(this, &SDT_LoggerTabSlate::OnClearClicked)
                     [
                         SNew(STextBlock)
-                        .Text(FText::FromString("REFRESH"))
+                        .Text(FText::FromString("Clear"))
                         .Font(FCoreStyle::GetDefaultFontStyle("Bold", 14))
                     ]
                 ]
@@ -148,7 +148,7 @@ void SDT_LoggerTabSlate::Construct(const FArguments& InArgs)
                     + SVerticalBox::Slot()
                     .AutoHeight()
                     [
-                        GenerateListWidget()
+                        GenerateLoggerListWidget()
                     ]
                 ]
             ]
@@ -178,7 +178,6 @@ TSharedRef<SWidget> SDT_LoggerTabSlate::MakeToggleButton(
         ];
 }
 
-// Handlers for toggling
 FReply SDT_LoggerTabSlate::OnB1Clicked()
 {
     bB1Enabled = !bB1Enabled;
@@ -199,6 +198,14 @@ FReply SDT_LoggerTabSlate::OnB3Clicked()
 
 FReply SDT_LoggerTabSlate::OnRefreshClicked()
 {
+    LoggerListBox->ClearChildren();
+    GenerateLoggerListWidget();
+    return FReply::Handled();
+}
+
+FReply SDT_LoggerTabSlate::OnClearClicked()
+{
+    LoggerListBox->ClearChildren();
     return FReply::Handled();
 }
 
@@ -219,9 +226,9 @@ TSharedRef<SWidget> SDT_LoggerTabSlate::MakeBlueSquareButton(const FString& Butt
 }
 
 
-TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateListWidget()
+TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateLoggerListWidget()
 {
-    TSharedRef<SVerticalBox> ListBox = SNew(SVerticalBox);
+    LoggerListBox = LoggerListBox.Get() ? LoggerListBox : SNew(SVerticalBox);
 
     if (const auto Logger = UDT_Logger::Get())
     {
@@ -251,7 +258,7 @@ TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateListWidget()
                 }
             };
 
-            ListBox->AddSlot()
+            LoggerListBox->AddSlot()
             .AutoHeight()
             .Padding(2)
             [
@@ -285,5 +292,5 @@ TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateListWidget()
         }
     }
 
-    return ListBox;
+    return LoggerListBox.ToSharedRef();
 }
