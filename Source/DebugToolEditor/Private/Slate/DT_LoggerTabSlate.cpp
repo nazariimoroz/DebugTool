@@ -249,7 +249,7 @@ void SDT_LoggerTabSlate::GenerateLoggerListWidget()
         }
     });
 
-    const auto Items = Logger->GetLastLogsInGame();
+    const auto Items = Logger->GetLastLogs();
     for (const auto& Item : Items)
     {
         AddItemToLoggerListWidget(Item);
@@ -272,7 +272,7 @@ TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateLogItemWidget(const FDT_LogEleme
 {
     TSharedPtr<SDT_LoggerTabSlate_LogInfo> LogInfo{new SDT_LoggerTabSlate_LogInfo{}};
     LogInfo->Log = LogElement.GetFullText();
-    LogInfo->Verbosity = LogElement.GetLogVerbosity();
+    LogInfo->Verbosity = LogElement.LogVerbosity;
 
     int32 NLIter = 0;
     if (LogInfo->Log.FindChar('\n', NLIter))
@@ -285,7 +285,7 @@ TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateLogItemWidget(const FDT_LogEleme
     }
 
     const auto Color = ([&LogElement]() {
-        switch (LogElement.GetLogVerbosity())
+        switch (LogElement.LogVerbosity)
         {
             case ELogVerbosity::Log:
                 return FLinearColor(0.f, 0.f, 0.f, 1.f);
