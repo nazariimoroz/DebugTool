@@ -30,17 +30,19 @@ protected:
 
     TSharedRef<SWidget> MakeBlueSquareButton(const FString& ButtonLabel);
 
-    TSharedRef<SWidget> GenerateLoggerListWidget();
+    void GenerateLoggerListWidget();
     void AddItemToLoggerListWidget(const FDT_LogElement& LogElement);
     TSharedRef<SWidget> GenerateLogItemWidget(const FDT_LogElement& LogElement);
 
-private:
+    TSharedPtr<SScrollBox> ListScrollBox = nullptr;
+    TSharedPtr<SVerticalBox> LoggerListBox = nullptr;
+
+  private:
     bool bB1Enabled = true;
     bool bB2Enabled = true;
     bool bB3Enabled = true;
     UFont* MonoFont;
 
-    TSharedPtr<SVerticalBox> LoggerListBox = nullptr;
 
 };
 

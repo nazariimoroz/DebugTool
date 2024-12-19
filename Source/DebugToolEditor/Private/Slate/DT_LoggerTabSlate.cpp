@@ -53,8 +53,8 @@ void SDT_LoggerTabSlate::Construct(const FArguments& InArgs)
                 + SHorizontalBox::Slot().AutoWidth().Padding(5)
                 [
                     MakeToggleButton(
-                        FLinearColor(1,1,1,1),   // Enabled color (lighter white)
-                        FLinearColor(0.3f,0.3f,0.3f,1), // Disabled color (darker gray)
+                        FLinearColor(1,1,1,1),
+                        FLinearColor(0.3f,0.3f,0.3f,1),
                         TAttribute<bool>::Create([this]() { return bB1Enabled; }),
                         FOnClicked::CreateSP(this, &SDT_LoggerTabSlate::OnB1Clicked)
                     )
@@ -64,8 +64,8 @@ void SDT_LoggerTabSlate::Construct(const FArguments& InArgs)
                 + SHorizontalBox::Slot().AutoWidth().Padding(5)
                 [
                     MakeToggleButton(
-                        FLinearColor(1,1,0,1),     // Enabled yellow
-                        FLinearColor(0.3f,0.3f,0,1), // Disabled darker yellow
+                        FLinearColor(1,1,0,1),
+                        FLinearColor(0.3f,0.3f,0,1),
                         TAttribute<bool>::Create([this]() { return bB2Enabled; }),
                         FOnClicked::CreateSP(this, &SDT_LoggerTabSlate::OnB2Clicked)
                     )
@@ -75,8 +75,8 @@ void SDT_LoggerTabSlate::Construct(const FArguments& InArgs)
                 + SHorizontalBox::Slot().AutoWidth().Padding(5)
                 [
                     MakeToggleButton(
-                        FLinearColor(1,0,0,1),     // Enabled red
-                        FLinearColor(0.3f,0,0,1), // Disabled darker red
+                        FLinearColor(1,0,0,1),
+                        FLinearColor(0.3f,0,0,1),
                         TAttribute<bool>::Create([this]() { return bB3Enabled; }),
                         FOnClicked::CreateSP(this, &SDT_LoggerTabSlate::OnB3Clicked)
                     )
@@ -131,23 +131,22 @@ void SDT_LoggerTabSlate::Construct(const FArguments& InArgs)
             ]
 
             // MAIN LIST AREA
-            + SVerticalBox::Slot().FillHeight(1.0f).Padding(5)
+            + SVerticalBox::Slot()
+            .FillHeight(1.0f)
+            .Padding(5)
             [
-                SNew(SScrollBox)
-                .Tag("ScrollBox")
+                SAssignNew(ListScrollBox, SScrollBox)
 
                 + SScrollBox::Slot()
                 [
-                    SNew(SVerticalBox)
-                    + SVerticalBox::Slot()
-                    .AutoHeight()
-                    [
-                        GenerateLoggerListWidget()
-                    ]
+                    SAssignNew(LoggerListBox, SVerticalBox)
                 ]
             ]
         ]
     ];
+
+    GenerateLoggerListWidget();
+    ListScrollBox->ScrollToEnd();
 }
 
 TSharedRef<SWidget> SDT_LoggerTabSlate::MakeToggleButton(
@@ -229,59 +228,32 @@ struct SDT_LoggerTabSlate_LogInfo
     int32 NLIter;
 };
 
-TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateLoggerListWidget()
+void SDT_LoggerTabSlate::GenerateLoggerListWidget()
 {
     const auto Logger = UDT_Logger::Get();
-    if (!Logger)
-    {
-        DT_ERROR_NO_LOGGER("Cant get logger");
-    }
 
-    if (!LoggerListBox)
-    {
-        LoggerListBox = SNew(SVerticalBox);
+    DT_RETURN_NO_LOGGER(LoggerListBox);
+    DT_RETURN_NO_LOGGER(Logger);
 
-        Logger->OnAddLogDelegate.AddSPLambda(this,
-        [this](FDT_LogElement LogInfo)
+    Logger->OnAddLogDelegate.AddSPLambda(this, [this](FDT_LogElement LogInfo) {
+        float CurrentOffset = ListScrollBox->GetScrollOffset();
+        float EndOffset     = ListScrollBox->GetScrollOffsetOfEnd();
+
+        bool ShouldScroll = FMath::IsNearlyEqual(CurrentOffset, EndOffset, KINDA_SMALL_NUMBER);
+
+        AddItemToLoggerListWidget(LogInfo);
+
+        if (ShouldScroll)
         {
-            if (!LoggerListBox) return;
-
-            SScrollBox* ScrollBox = nullptr;
-            bool ShouldScroll = false;
-            //TODO: refactor
-            for (auto i = LoggerListBox->GetParentWidget(); ; i = i->GetParentWidget())
-            {
-                if (!i.Get())
-                    break;
-
-                if (i->GetTag() == "ScrollBox")
-                {
-                    ScrollBox = static_cast<SScrollBox*>(i.Get());
-                    float CurrentOffset = ScrollBox->GetScrollOffset();
-                    float EndOffset = ScrollBox->GetScrollOffsetOfEnd();
-
-                    ShouldScroll = FMath::IsNearlyEqual(CurrentOffset, EndOffset, KINDA_SMALL_NUMBER);
-
-                    break;
-                }
-            }
-
-            AddItemToLoggerListWidget(LogInfo);
-
-            if (ShouldScroll && ScrollBox)
-            {
-                ScrollBox->ScrollToEnd();
-            }
-        });
-    }
+            ListScrollBox->ScrollToEnd();
+        }
+    });
 
     const auto Items = Logger->GetLastLogsInGame();
     for (const auto& Item : Items)
     {
         AddItemToLoggerListWidget(Item);
     }
-
-    return LoggerListBox.ToSharedRef();
 }
 
 void SDT_LoggerTabSlate::AddItemToLoggerListWidget(const FDT_LogElement& LogElement)
