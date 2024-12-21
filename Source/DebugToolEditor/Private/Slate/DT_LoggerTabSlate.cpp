@@ -220,12 +220,102 @@ TSharedRef<SWidget> SDT_LoggerTabSlate::MakeBlueSquareButton(const FString& Butt
 
 struct SDT_LoggerTabSlate_LogInfo
 {
-    FString Log;
-    ELogVerbosity::Type Verbosity;
+    const FDT_LogElement* LogElement;
 
-    FString NLAfterText;
-    TOptional<bool> NLSetted;
-    int32 NLIter;
+    FString CurrentMessage;
+
+    bool HaveNL = false;
+    bool OriginMessageHaveNL = false;
+    bool HaveStackTrace = false;
+    bool SettedNL = false;
+    int32 OriginIndexNL = 0;
+    int32 CurrentIndexNL = -1;
+
+    const FString& GetMessage()
+    {
+        if(!CurrentMessage.IsEmpty()) return CurrentMessage;
+
+        FString Message = LogElement->Message;
+
+        if (LogElement->StackTrace)
+        {
+            Message += TEXT("\n\n");
+            Message += *LogElement->StackTrace;
+            HaveStackTrace = true;
+        }
+        OriginIndexNL = 0;
+        OriginMessageHaveNL = Message.FindChar('\n', OriginIndexNL);
+        HaveNL = HaveStackTrace || OriginMessageHaveNL;
+
+        if (HaveNL)
+        {
+            DT_ERROR_NO_LOGGER("Message: {0} IndexNL: {1} Count {2}",
+                *CurrentMessage, OriginIndexNL,
+                Message.Len() - OriginIndexNL);
+
+            Message.RemoveAt(OriginIndexNL, Message.Len() - OriginIndexNL);
+            Message += TEXT(" ...");
+        }
+
+        CurrentMessage = FString::Printf(TEXT("%s(%llu): %s"),
+            *LogElement->Category,
+            LogElement->Line,
+            *Message);
+
+        return CurrentMessage;
+    }
+
+    void RemakeMessageWithNL()
+    {
+        if (!HaveNL) return;
+        if (SettedNL) return;
+
+        CurrentMessage.RemoveAt(CurrentMessage.Len() - 4, 4); // Remove " ..."
+        if (OriginMessageHaveNL)
+        {
+            CurrentMessage.Append(LogElement->Message.GetCharArray().GetData() + OriginIndexNL);
+        }
+        if (HaveStackTrace && LogElement->StackTrace)
+        {
+            CurrentMessage += TEXT("\n\n");
+            CurrentMessage += *LogElement->StackTrace;
+        }
+
+        SettedNL = true;
+    }
+
+    void RemakeMessageNoNL()
+    {
+        if (!HaveNL) return;
+        if (!SettedNL) return;
+
+        if (CurrentIndexNL == -1)
+        {
+            CurrentMessage.FindChar('\n', CurrentIndexNL);
+        }
+
+        CurrentMessage.RemoveAt(CurrentIndexNL, CurrentMessage.Len() - CurrentIndexNL);
+        CurrentMessage += TEXT(" ...");
+
+        SettedNL = false;
+    }
+
+    void SwitchNL()
+    {
+        if (!HaveNL) return;
+
+        if (SettedNL)
+        {
+            RemakeMessageNoNL();
+        }
+        else
+        {
+            RemakeMessageWithNL();
+        }
+
+        /** SettedNL will be setted in Remake methods */
+    }
+
 };
 
 void SDT_LoggerTabSlate::GenerateLoggerListWidget()
@@ -235,13 +325,13 @@ void SDT_LoggerTabSlate::GenerateLoggerListWidget()
     DT_RETURN_NO_LOGGER(LoggerListBox);
     DT_RETURN_NO_LOGGER(Logger);
 
-    Logger->OnAddLogDelegate.AddSPLambda(this, [this](FDT_LogElement LogInfo) {
+    Logger->OnAddLogDelegate.AddSPLambda(this, [this](const FDT_LogElement* LogElement) {
         float CurrentOffset = ListScrollBox->GetScrollOffset();
         float EndOffset     = ListScrollBox->GetScrollOffsetOfEnd();
 
         bool ShouldScroll = FMath::IsNearlyEqual(CurrentOffset, EndOffset, KINDA_SMALL_NUMBER);
 
-        AddItemToLoggerListWidget(LogInfo);
+        AddItemToLoggerListWidget(*LogElement);
 
         if (ShouldScroll)
         {
@@ -249,8 +339,7 @@ void SDT_LoggerTabSlate::GenerateLoggerListWidget()
         }
     });
 
-    const auto Items = Logger->GetLastLogs();
-    for (const auto& Item : Items)
+    for (const auto& Item : *Logger)
     {
         AddItemToLoggerListWidget(Item);
     }
@@ -271,18 +360,7 @@ void SDT_LoggerTabSlate::AddItemToLoggerListWidget(const FDT_LogElement& LogElem
 TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateLogItemWidget(const FDT_LogElement& LogElement)
 {
     TSharedPtr<SDT_LoggerTabSlate_LogInfo> LogInfo{new SDT_LoggerTabSlate_LogInfo{}};
-    LogInfo->Log = LogElement.GetFullText();
-    LogInfo->Verbosity = LogElement.LogVerbosity;
-
-    int32 NLIter = 0;
-    if (LogInfo->Log.FindChar('\n', NLIter))
-    {
-        LogInfo->NLSetted    = false;
-        LogInfo->NLIter      = NLIter;
-        LogInfo->NLAfterText = LogInfo->Log.Mid(NLIter + 1);
-        LogInfo->Log         = LogInfo->Log.Left(NLIter);
-        LogInfo->Log         += " ...";
-    }
+    LogInfo->LogElement = &LogElement;
 
     const auto Color = ([&LogElement]() {
         switch (LogElement.LogVerbosity)
@@ -300,27 +378,14 @@ TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateLogItemWidget(const FDT_LogEleme
 
     const auto OnClick = [LogInfo]
     {
-        if (!LogInfo->NLSetted.IsSet())
-            return FReply::Handled();
+        LogInfo->SwitchNL();
 
-        *LogInfo->NLSetted = !*LogInfo->NLSetted;
-
-        if (*LogInfo->NLSetted)
-        {
-            LogInfo->Log.RemoveFromEnd(" ...");
-            LogInfo->Log += '\n';
-            LogInfo->Log += LogInfo->NLAfterText;
-            return FReply::Handled();
-        }
-
-        LogInfo->Log = LogInfo->Log.Left(LogInfo->NLIter);
-        LogInfo->Log += " ...";
         return FReply::Handled();
     };
 
     const auto GetText = [LogInfo]
     {
-        return FText::FromString(LogInfo->Log);
+        return FText::FromString(LogInfo->GetMessage());
     };
 
     return SNew(SButton)

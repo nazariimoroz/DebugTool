@@ -78,9 +78,9 @@ UDT_Logger* UDT_Logger::Singleton = nullptr;
 
 UDT_Logger::UDT_Logger()
 {
-    bUseDelegates = true;
-    bUseLoggerFile = true;
-
+    // TODO: Move to settings
+    LogVerbosityWithStackTrace.Add(ELogVerbosity::Error);
+    LogVerbosityWithStackTrace.Add(ELogVerbosity::Warning);
 #if WITH_EDITOR
     ReloadLogFileFromSettingsClass();
 #else
@@ -92,49 +92,26 @@ UDT_Logger::UDT_Logger()
         LoggerFile.open(*FileName, std::ios::out);
     }*/
 #endif
-
-    bInited = true;
 }
 
 UDT_Logger::~UDT_Logger()
 {
-    if(bUseLoggerFile)
-        LoggerFile.close();
 }
 
 void UDT_Logger::WriteLine(const ELogVerbosity::Type LogVerbosity, FString&& Category, const uint64 Line, FString&& Str)
 {
-    if (!bInited)
-    {
-        UE_LOG(LogTemp, Error, TEXT("Logger is not inited"));
-        return;
-    }
-
     auto LogElement = FDT_LogElement();
-    LogElement.LogText = MoveTempIfPossible(Str);
+    LogElement.Message = MoveTempIfPossible(Str);
     LogElement.Category = MoveTempIfPossible(Category);
     LogElement.Line = Line;
     LogElement.LogVerbosity = LogVerbosity;
-    if (LogVerbosity == ELogVerbosity::Error)
+    if (LogVerbosityWithStackTrace.Contains(LogVerbosity))
     {
         LogElement.StackTrace = DT_GET_STACKTRACE();
     }
 
-    if (bUseDelegates) OnAddLogDelegate.Broadcast(LogElement);
-    LoggerList.AddTail(LogElement);
-
-    /*
-    if(bUseLoggerFile)
-    {
-        if(LoggerFile.is_open())
-        {
-            // LoggerFile << GetData(Final) << std::endl;
-        }
-        else
-        {
-            // DT_ERROR_NO_LOGGER("{0}", "LoggerFile is closed");
-        }
-    }*/
+    auto* InsertedLogElement = &LoggerList.emplace_back(MoveTempIfPossible(LogElement));
+    OnAddLogDelegate.Broadcast(InsertedLogElement);
 }
 
 void UDT_Logger::Breakpoint(FString&& Category, const uint64 Line)
@@ -142,17 +119,14 @@ void UDT_Logger::Breakpoint(FString&& Category, const uint64 Line)
     WriteLineFormat(ELogVerbosity::Error, MoveTempIfPossible(Category), Line, TEXT("BREAKPOINT"));
 }
 
-TArray<FDT_LogElement> UDT_Logger::GetLastLogs(int32 Count) const
+UDT_Logger::ConstIterator UDT_Logger::begin() const
 {
-    int32 Added = 0;
-    TArray<FDT_LogElement> ToRet;
-    for (auto Iter = LoggerList.GetTail();
-         Iter && (Count == -1 || Added < Count);
-         Iter = Iter->GetPrevNode(), Added += 1)
-    {
-        ToRet.Insert(Iter->GetValue(), 0);
-    }
-    return ToRet;
+    return std::rbegin(LoggerList);
+}
+
+UDT_Logger::ConstIterator UDT_Logger::end() const
+{
+    return std::rend(LoggerList);
 }
 
 UDT_ChainLogger UDT_Logger::CreateChainLogger(const ELogVerbosity::Type LogVerbosity, FString&& Category, const uint64 Line) const
@@ -162,6 +136,7 @@ UDT_ChainLogger UDT_Logger::CreateChainLogger(const ELogVerbosity::Type LogVerbo
 
 void UDT_Logger::ReloadLogFileFromSettingsClass()
 {
+#if 0
     if(const auto Settings = GetMutableDefault<UDT_Settings>())
     {
         if(LoggerFile.is_open())
@@ -189,5 +164,6 @@ void UDT_Logger::ReloadLogFileFromSettingsClass()
             LoggerFile.open(*FileName, std::ios::out);
         }
     }
+#endif
 }
 

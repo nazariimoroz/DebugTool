@@ -8,6 +8,8 @@
 #include "CoreMinimal.h"
 #include "Logging/StructuredLog.h"
 
+#include <list>
+
 DEFINE_LOG_CATEGORY_STATIC(LogDebugTool, All, All)
 
 #define TO_STR(TO_CONV) #TO_CONV
@@ -129,27 +131,11 @@ class FDebugToolModule;
 
 struct FDT_LogElement
 {
-    FString LogText;
+    FString Message;
     FString Category;
     uint64 Line;
     ELogVerbosity::Type LogVerbosity = ELogVerbosity::Display;
     TOptional<FString> StackTrace;
-
-    mutable FString FullText;
-
-    FString GetFullText() const
-    {
-        if(!FullText.IsEmpty()) return FullText;
-
-        FullText = FString::Printf(TEXT("%s(%llu): %s"), *Category, Line, *LogText);
-        if (StackTrace)
-        {
-            FullText += TEXT("\n\n");
-            FullText += *StackTrace;
-        }
-
-        return FullText;
-    }
 };
 
 template <class T>
@@ -208,12 +194,16 @@ class DEBUGTOOL_API UDT_Logger
 {
     friend FDebugToolModule;
 
-    DECLARE_MULTICAST_DELEGATE_OneParam(FDT_OnAddLogDelegate, FDT_LogElement);
-    DECLARE_MULTICAST_DELEGATE_OneParam(FDT_OnAddLogInGameDelegate, FDT_LogElement);
+    DECLARE_MULTICAST_DELEGATE_OneParam(FDT_OnAddLogDelegate, const FDT_LogElement* /*Log Element*/);
 
-#pragma region Singleton
+public:
+    FDT_OnAddLogDelegate OnAddLogDelegate;
+
+public:
+    using ConstIterator = std::list<FDT_LogElement>::const_reverse_iterator;
 
 protected:
+#pragma region Singleton
     UDT_Logger();
     ~UDT_Logger();
 
@@ -227,6 +217,7 @@ public:
 
 protected:
     static UDT_Logger* Singleton;
+
 #pragma endregion
 
 public:
@@ -267,24 +258,16 @@ public:
 
     void Breakpoint(FString&& Category, const uint64 Line);
 
-    TArray<FDT_LogElement> GetLastLogs(int32 Count = -1) const;
+    ConstIterator begin() const;
+    ConstIterator end() const;
 
     UDT_ChainLogger CreateChainLogger(const ELogVerbosity::Type LogVerbosity, FString&& Category, const uint64 Line) const;
 
     void ReloadLogFileFromSettingsClass();
 
-public:
-    FDT_OnAddLogDelegate OnAddLogDelegate;
-
-public:
-    bool bUseDelegates = false;
-    bool bUseLoggerFile = false;
-
 protected:
-    bool bInited = false;
+    std::list<FDT_LogElement> LoggerList;
 
-    TDoubleLinkedList<FDT_LogElement> LoggerList;
-
-    std::wofstream LoggerFile;
+    TSet<ELogVerbosity::Type> LogVerbosityWithStackTrace;
 
 };
