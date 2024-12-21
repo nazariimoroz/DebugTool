@@ -249,16 +249,12 @@ struct SDT_LoggerTabSlate_LogInfo
 
         if (HaveNL)
         {
-            DT_ERROR_NO_LOGGER("Message: {0} IndexNL: {1} Count {2}",
-                *CurrentMessage, OriginIndexNL,
-                Message.Len() - OriginIndexNL);
-
             Message.RemoveAt(OriginIndexNL, Message.Len() - OriginIndexNL);
             Message += TEXT(" ...");
         }
 
         CurrentMessage = FString::Printf(TEXT("%s(%llu): %s"),
-            *LogElement->Category,
+            *LogElement->File,
             LogElement->Line,
             *Message);
 

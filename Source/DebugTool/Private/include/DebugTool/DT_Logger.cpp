@@ -8,16 +8,16 @@
 
 #include "DT_Settings.h"
 
-UDT_ChainLogger::UDT_ChainLogger(const ELogVerbosity::Type InLogVerbosity, FString&& InCategory, const uint64 InLine)
+UDT_ChainLogger::UDT_ChainLogger(const ELogVerbosity::Type InLogVerbosity, FString&& InFile, const uint64 InLine)
     : LogVerbosity(InLogVerbosity)
-    , Category(InCategory)
+    , File(InFile)
     , Line(InLine)
 {}
 
 UDT_ChainLogger::~UDT_ChainLogger()
 {
     if(const auto Logger = UDT_Logger::Get())
-        Logger->WriteLine(LogVerbosity, MoveTempIfPossible(Category), Line, StringBuilder.ToString());
+        Logger->WriteLine(LogVerbosity, MoveTempIfPossible(File), Line, StringBuilder.ToString());
 }
 
 UDT_ChainLogger& UDT_ChainLogger::operator<<(const char* Value)
@@ -98,11 +98,11 @@ UDT_Logger::~UDT_Logger()
 {
 }
 
-void UDT_Logger::WriteLine(const ELogVerbosity::Type LogVerbosity, FString&& Category, const uint64 Line, FString&& Str)
+void UDT_Logger::WriteLine(const ELogVerbosity::Type LogVerbosity, FString&& File, const uint64 Line, FString&& Str)
 {
     auto LogElement = FDT_LogElement();
     LogElement.Message = MoveTempIfPossible(Str);
-    LogElement.Category = MoveTempIfPossible(Category);
+    LogElement.File = MoveTempIfPossible(File);
     LogElement.Line = Line;
     LogElement.LogVerbosity = LogVerbosity;
     if (LogVerbosityWithStackTrace.Contains(LogVerbosity))
@@ -114,9 +114,9 @@ void UDT_Logger::WriteLine(const ELogVerbosity::Type LogVerbosity, FString&& Cat
     OnAddLogDelegate.Broadcast(InsertedLogElement);
 }
 
-void UDT_Logger::Breakpoint(FString&& Category, const uint64 Line)
+void UDT_Logger::Breakpoint(FString&& File, const uint64 Line)
 {
-    WriteLineFormat(ELogVerbosity::Error, MoveTempIfPossible(Category), Line, TEXT("BREAKPOINT"));
+    WriteLineFormat(ELogVerbosity::Error, MoveTempIfPossible(File), Line, TEXT("BREAKPOINT"));
 }
 
 UDT_Logger::ConstIterator UDT_Logger::begin() const
@@ -129,9 +129,9 @@ UDT_Logger::ConstIterator UDT_Logger::end() const
     return std::rend(LoggerList);
 }
 
-UDT_ChainLogger UDT_Logger::CreateChainLogger(const ELogVerbosity::Type LogVerbosity, FString&& Category, const uint64 Line) const
+UDT_ChainLogger UDT_Logger::CreateChainLogger(const ELogVerbosity::Type LogVerbosity, FString&& File, const uint64 Line) const
 {
-    return UDT_ChainLogger(LogVerbosity, MoveTempIfPossible(Category), Line);
+    return UDT_ChainLogger(LogVerbosity, MoveTempIfPossible(File), Line);
 }
 
 void UDT_Logger::ReloadLogFileFromSettingsClass()

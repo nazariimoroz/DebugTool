@@ -44,34 +44,34 @@ DEFINE_LOG_CATEGORY_STATIC(LogDebugTool, All, All)
 #pragma region BaseMacros
 #define DT_DISPLAY(Format, ...) do {                                                                                                                        \
     UE_LOGFMT(LogDebugTool, Display, DT_LOG_DEBUG_INFO Format __VA_OPT__(,) __VA_ARGS__);                                                                   \
-    if(const auto Logger = UDT_Logger::Get()) Logger->Display(DT_GET_CATEGORY_BY_FILENAME(__FILE__), __LINE__, TEXT(Format) __VA_OPT__(,) __VA_ARGS__);     \
+    if(const auto Logger = UDT_Logger::Get()) Logger->Display(DT_FORMAT_FILENAME(__FILE__), __LINE__, TEXT(Format) __VA_OPT__(,) __VA_ARGS__);     \
     } while(false)
 
 #define DT_WARNING(Format, ...) do {                                                                                                                        \
     UE_LOGFMT(LogDebugTool, Warning, DT_LOG_DEBUG_INFO Format __VA_OPT__(,) __VA_ARGS__);                                                                   \
-    if(const auto Logger = UDT_Logger::Get()) Logger->Warning(DT_GET_CATEGORY_BY_FILENAME(__FILE__), __LINE__, TEXT(Format) __VA_OPT__(,) __VA_ARGS__);     \
+    if(const auto Logger = UDT_Logger::Get()) Logger->Warning(DT_FORMAT_FILENAME(__FILE__), __LINE__, TEXT(Format) __VA_OPT__(,) __VA_ARGS__);     \
     } while(false)
 
 #define DT_ERROR(Format, ...) do {                                                                                                                          \
     UE_LOGFMT(LogDebugTool, Error, DT_LOG_DEBUG_INFO Format __VA_OPT__(,) __VA_ARGS__);                                                                     \
-    if(const auto Logger = UDT_Logger::Get()) Logger->Error(DT_GET_CATEGORY_BY_FILENAME(__FILE__), __LINE__, TEXT(Format) __VA_OPT__(,) __VA_ARGS__);       \
+    if(const auto Logger = UDT_Logger::Get()) Logger->Error(DT_FORMAT_FILENAME(__FILE__), __LINE__, TEXT(Format) __VA_OPT__(,) __VA_ARGS__);       \
     } while(false)
 
 #define DT_BREAKPOINT() do {                                                                                                                                \
     UE_LOGFMT(LogDebugTool, Error, "{0}: BREAKPOINT", TEXT(DT_LOG_DEBUG_INFO));                                                                             \
-    if(const auto Logger = UDT_Logger::Get()) Logger->Breakpoint(DT_GET_CATEGORY_BY_FILENAME(__FILE__), __LINE__);                                          \
+    if(const auto Logger = UDT_Logger::Get()) Logger->Breakpoint(DT_FORMAT_FILENAME(__FILE__), __LINE__);                                          \
     } while(false)
 #pragma endregion BaseMacros
 
 #pragma region ChainedMacros
 #define DT_CHAINED_DISPLAY() \
-    if(const auto Logger = UDT_Logger::Get()) Logger->CreateChainLogger(ELogVerbosity::Display ,DT_GET_CATEGORY_BY_FILENAME(__FILE__), __LINE__)
+    if(const auto Logger = UDT_Logger::Get()) Logger->CreateChainLogger(ELogVerbosity::Display ,DT_FORMAT_FILENAME(__FILE__), __LINE__)
 
 #define DT_CHAINED_WARNING() \
-    if(const auto Logger = UDT_Logger::Get()) Logger->CreateChainLogger(ELogVerbosity::Warning ,DT_GET_CATEGORY_BY_FILENAME(__FILE__), __LINE__)
+    if(const auto Logger = UDT_Logger::Get()) Logger->CreateChainLogger(ELogVerbosity::Warning ,DT_FORMAT_FILENAME(__FILE__), __LINE__)
 
 #define DT_CHAINED_ERROR() \
-    if(const auto Logger = UDT_Logger::Get()) Logger->CreateChainLogger(ELogVerbosity::Error ,DT_GET_CATEGORY_BY_FILENAME(__FILE__), __LINE__)
+    if(const auto Logger = UDT_Logger::Get()) Logger->CreateChainLogger(ELogVerbosity::Error ,DT_FORMAT_FILENAME(__FILE__), __LINE__)
 #pragma endregion ChainedMacros
 
 #pragma region ReturnMacros
@@ -86,7 +86,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogDebugTool, All, All)
 #define DT_RETURN(Expression) DT_RETURN_A(Expression, )
 #pragma endregion ReturnMacros
 
-FORCEINLINE FString DT_GET_CATEGORY_BY_FILENAME(const TStringView<char>& InFileName)
+FORCEINLINE FString DT_FORMAT_FILENAME(const TStringView<char>& InFileName)
 {
     TOptional<int32> BeginPos;
     TOptional<int32> EndPos;
@@ -132,7 +132,7 @@ class FDebugToolModule;
 struct FDT_LogElement
 {
     FString Message;
-    FString Category;
+    FString File;
     uint64 Line;
     ELogVerbosity::Type LogVerbosity = ELogVerbosity::Display;
     TOptional<FString> StackTrace;
@@ -149,7 +149,7 @@ constexpr auto FTArrayCondition =
 class DEBUGTOOL_API UDT_ChainLogger final
 {
 public:
-    UDT_ChainLogger(const ELogVerbosity::Type InLogVerbosity, FString&& InCategory, const uint64 InLine);
+    UDT_ChainLogger(const ELogVerbosity::Type InLogVerbosity, FString&& InFile, const uint64 InLine);
     ~UDT_ChainLogger();
 
     UDT_ChainLogger& operator<<(const char* Value);
@@ -184,7 +184,7 @@ public:
 
 private:
     ELogVerbosity::Type LogVerbosity;
-    FString Category;
+    FString File;
     uint64 Line;
 
     FStringBuilderBase StringBuilder;
@@ -222,46 +222,46 @@ protected:
 
 public:
     void WriteLine(const ELogVerbosity::Type LogVerbosity,
-        FString&& Category,
+        FString&& File,
         const uint64 Line,
         FString&& Str);
 
     template <class... T>
     void WriteLineFormat(const ELogVerbosity::Type LogVerbosity,
-        FString&& Category,
+        FString&& File,
         const uint64 Line,
         const FStringView& Format,
         T... Args)
     {
         auto Str = FString::Format(Format.GetData(), FStringFormatOrderedArguments{Args...});
 
-        WriteLine(LogVerbosity, MoveTempIfPossible(Category), Line, MoveTempIfPossible(Str));
+        WriteLine(LogVerbosity, MoveTempIfPossible(File), Line, MoveTempIfPossible(Str));
     }
 
     template <class... T>
-    void Display(FString&& Category, const uint64 Line, const FStringView& Format, T... Args)
+    void Display(FString&& File, const uint64 Line, const FStringView& Format, T... Args)
     {
-        WriteLineFormat(ELogVerbosity::Display, MoveTempIfPossible(Category), Line, Format, Args...);
+        WriteLineFormat(ELogVerbosity::Display, MoveTempIfPossible(File), Line, Format, Args...);
     }
 
     template <class... T>
-    void Warning(FString&& Category, const uint64 Line, const FStringView& Format, T... Args)
+    void Warning(FString&& File, const uint64 Line, const FStringView& Format, T... Args)
     {
-        WriteLineFormat(ELogVerbosity::Warning, MoveTempIfPossible(Category), Line, Format, Args...);
+        WriteLineFormat(ELogVerbosity::Warning, MoveTempIfPossible(File), Line, Format, Args...);
     }
 
     template <class... T>
-    void Error(FString&& Category, const uint64 Line, const FStringView& Format, T... Args)
+    void Error(FString&& File, const uint64 Line, const FStringView& Format, T... Args)
     {
-        WriteLineFormat(ELogVerbosity::Error, MoveTempIfPossible(Category), Line, Format, Args...);
+        WriteLineFormat(ELogVerbosity::Error, MoveTempIfPossible(File), Line, Format, Args...);
     }
 
-    void Breakpoint(FString&& Category, const uint64 Line);
+    void Breakpoint(FString&& File, const uint64 Line);
 
     ConstIterator begin() const;
     ConstIterator end() const;
 
-    UDT_ChainLogger CreateChainLogger(const ELogVerbosity::Type LogVerbosity, FString&& Category, const uint64 Line) const;
+    UDT_ChainLogger CreateChainLogger(const ELogVerbosity::Type LogVerbosity, FString&& File, const uint64 Line) const;
 
     void ReloadLogFileFromSettingsClass();
 
