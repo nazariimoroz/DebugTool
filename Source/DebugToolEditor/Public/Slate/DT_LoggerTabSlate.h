@@ -37,12 +37,18 @@ protected:
     TSharedPtr<SScrollBox> ListScrollBox = nullptr;
     TSharedPtr<SVerticalBox> LoggerListBox = nullptr;
 
-  private:
+    TSharedRef<SWidget> GenerateMenuContent();
+    FReply OnOpenMenuClicked();
+
+    TSharedPtr<SMenuAnchor> MenuAnchor;
+
+private:
     bool bB1Enabled = true;
     bool bB2Enabled = true;
     bool bB3Enabled = true;
     UFont* MonoFont;
 
+    bool bShowNetStatus = true;
 
 };
 

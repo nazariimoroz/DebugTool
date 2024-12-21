@@ -109,8 +109,10 @@ void SDT_LoggerTabSlate::Construct(const FArguments& InArgs)
                     .Font(FCoreStyle::GetDefaultFontStyle("Regular", 12))
                 ]
 
-                // Right Refresh Button
-                + SHorizontalBox::Slot().AutoWidth().Padding(5)
+                // Clear Button
+                + SHorizontalBox::Slot()
+                .AutoWidth()
+                .Padding(5)
                 [
                     SNew(SButton)
                     .ButtonStyle(&FCoreStyle::Get().GetWidgetStyle<FButtonStyle>("Button"))
@@ -122,6 +124,32 @@ void SDT_LoggerTabSlate::Construct(const FArguments& InArgs)
                         .Font(FCoreStyle::GetDefaultFontStyle("Bold", 14))
                     ]
                 ]
+
+
+                + SHorizontalBox::Slot()
+                .FillWidth(1.f)
+
+                + SHorizontalBox::Slot()
+                .HAlign(HAlign_Right)
+                .Padding(5)
+                .AutoWidth()
+                [
+                    SAssignNew(MenuAnchor, SMenuAnchor)
+                    .OnGetMenuContent(this, &SDT_LoggerTabSlate::GenerateMenuContent)
+                    .Placement(MenuPlacement_BelowRightAnchor)
+                    .Method(EPopupMethod::CreateNewWindow)
+                    [
+                        SNew(SButton)
+                        .ButtonStyle(&FCoreStyle::Get().GetWidgetStyle<FButtonStyle>("Button"))
+                        .OnClicked(this, &SDT_LoggerTabSlate::OnOpenMenuClicked)
+                        [
+                            SNew(STextBlock)
+                            .Text(NSLOCTEXT("Logger", "Tab", "≡"))
+                            .Font(FSlateFontInfo(Cast<UObject>(MonoFont), 14))
+                        ]
+                    ]
+                ]
+
             ]
 
             // SPACER
@@ -397,7 +425,7 @@ void SDT_LoggerTabSlate::AddItemToLoggerListWidget(const FDT_LogElement& LogElem
 
 TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateLogItemWidget(const FDT_LogElement& LogElement)
 {
-    TSharedPtr<SDT_LoggerTabSlate_LogInfo> LogInfo{ new SDT_LoggerTabSlate_LogInfo{&LogElement} };
+    TSharedPtr<SDT_LoggerTabSlate_LogInfo> LogInfo{new SDT_LoggerTabSlate_LogInfo{&LogElement}};
 
     const auto Color = ([&LogElement]() {
         switch (LogElement.LogVerbosity)
@@ -413,47 +441,87 @@ TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateLogItemWidget(const FDT_LogEleme
         }
     })();
 
-    const auto OnClick = [LogInfo]
-    {
+    const auto OnClick = [LogInfo] {
         LogInfo->SwitchNL();
 
         return FReply::Handled();
     };
 
-    const auto GetText = [LogInfo]
-    {
-        return FText::FromString(LogInfo->GetMessage());
-    };
+    const auto GetText = [LogInfo] { return FText::FromString(LogInfo->GetMessage()); };
 
     return SNew(SButton)
-           .ButtonColorAndOpacity(Color)
-           .ContentPadding(FMargin(3))
-           .OnClicked_Lambda(OnClick)
+        .ButtonColorAndOpacity(Color)
+        .ContentPadding(FMargin(3))
+        .OnClicked_Lambda(OnClick)
+        [
+            SNew(SVerticalBox)
+
+            + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f,1.f)
             [
-                SNew(SVerticalBox)
-
-                + SVerticalBox::Slot()
-                .AutoHeight()
-                .Padding(0.f,0.f,0.f,1.f)
-                [
-                    SNew(STextBlock)
-                    .Visibility_Lambda([LogInfo] {
-                        if (LogInfo->ShowNetStatusMessage())
-                            return EVisibility::Visible;
+                SNew(STextBlock)
+                .Visibility_Lambda([LogInfo, this]{
+                    if (!bShowNetStatus)
                         return EVisibility::Collapsed;
-                    })
-                    .Text_Lambda([LogInfo] {
-                        return FText::FromString(LogInfo->GetNetStatusMessage());
-                    })
-                    .Font(FSlateFontInfo(Cast<UObject>(MonoFont), 10))
-                ]
 
-                + SVerticalBox::Slot()
-                .AutoHeight()
+                    if (!LogInfo->ShowNetStatusMessage())
+                        return EVisibility::Collapsed;
+
+                    return EVisibility::Visible;
+                })
+                .Text_Lambda([LogInfo] { return FText::FromString(LogInfo->GetNetStatusMessage()); })
+                .Font(FSlateFontInfo(Cast<UObject>(MonoFont), 10))]
+
+            + SVerticalBox::Slot().AutoHeight()
+            [
+                SNew(STextBlock)
+                .Text_Lambda(GetText)
+                .Font(FSlateFontInfo(Cast<UObject>(MonoFont), 10))
+            ]
+        ];
+}
+
+TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateMenuContent()
+{
+    return
+        SNew(SBorder)
+        .Padding(5)
+        .BorderImage(FCoreStyle::Get().GetBrush("Menu.Background"))
+        [
+            SNew(SVerticalBox)
+
+            + SVerticalBox::Slot()
+            .AutoHeight()
+            [
+                SNew(SHorizontalBox)
+
+                + SHorizontalBox::Slot()
+                .AutoWidth()
+                .Padding(5)
                 [
                     SNew(STextBlock)
-                    .Text_Lambda(GetText)
-                    .Font(FSlateFontInfo(Cast<UObject>(MonoFont), 10))
+                    .Text(FText::FromString("Show net status:"))
+                    .Font(FCoreStyle::GetDefaultFontStyle("Regular", 12))
                 ]
-           ];
+
+                + SHorizontalBox::Slot()
+                .AutoWidth()
+                .Padding(5)
+                [
+                    SNew(SCheckBox)
+                    .IsChecked(bShowNetStatus)
+                    .OnCheckStateChanged_Lambda([this](ECheckBoxState CheckBoxState) {
+                        bShowNetStatus = (bool)CheckBoxState;
+                    })
+                ]
+            ]
+        ];
+}
+
+FReply SDT_LoggerTabSlate::OnOpenMenuClicked()
+{
+    if (MenuAnchor.IsValid())
+    {
+        MenuAnchor->SetIsOpen(true, true);
+    }
+    return FReply::Handled();
 }
