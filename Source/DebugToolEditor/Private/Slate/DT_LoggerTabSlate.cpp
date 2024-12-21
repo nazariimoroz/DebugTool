@@ -221,6 +221,34 @@ TSharedRef<SWidget> SDT_LoggerTabSlate::MakeBlueSquareButton(const FString& Butt
 struct SDT_LoggerTabSlate_LogInfo
 {
     const FDT_LogElement* LogElement;
+    SDT_LoggerTabSlate_LogInfo(const FDT_LogElement* InLogElement)
+        : LogElement(InLogElement)
+    {
+        switch (LogElement->NetMode)
+        {
+            case NM_Client:
+            {
+                NetStatusMessage = FString::Printf(TEXT("Client %i"), LogElement->NetId);
+                bHaveNetStatus = true;
+                break;
+            }
+            case NM_ListenServer:
+            case NM_DedicatedServer:
+            {
+                NetStatusMessage = "Server";
+                bHaveNetStatus = true;
+                break;
+            }
+
+            case NM_Standalone:
+            case NM_MAX:
+            default:
+            {
+                bHaveNetStatus = false;
+                break;
+            }
+        }
+    }
 
     FString CurrentMessage;
 
@@ -312,6 +340,20 @@ struct SDT_LoggerTabSlate_LogInfo
         /** SettedNL will be setted in Remake methods */
     }
 
+    FString NetStatusMessage;
+    bool bHaveNetStatus = false;
+    bool bShowNetStatusMessage = true;
+
+    bool ShowNetStatusMessage() const
+    {
+        return bShowNetStatusMessage && bHaveNetStatus;
+    }
+
+    const FString& GetNetStatusMessage() const
+    {
+        return NetStatusMessage;
+    }
+
 };
 
 void SDT_LoggerTabSlate::GenerateLoggerListWidget()
@@ -355,8 +397,7 @@ void SDT_LoggerTabSlate::AddItemToLoggerListWidget(const FDT_LogElement& LogElem
 
 TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateLogItemWidget(const FDT_LogElement& LogElement)
 {
-    TSharedPtr<SDT_LoggerTabSlate_LogInfo> LogInfo{new SDT_LoggerTabSlate_LogInfo{}};
-    LogInfo->LogElement = &LogElement;
+    TSharedPtr<SDT_LoggerTabSlate_LogInfo> LogInfo{ new SDT_LoggerTabSlate_LogInfo{&LogElement} };
 
     const auto Color = ([&LogElement]() {
         switch (LogElement.LogVerbosity)
@@ -389,8 +430,30 @@ TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateLogItemWidget(const FDT_LogEleme
            .ContentPadding(FMargin(3))
            .OnClicked_Lambda(OnClick)
             [
-               SNew(STextBlock)
-               .Text_Lambda(GetText)
-               .Font(FSlateFontInfo(Cast<UObject>(MonoFont), 10))
+                SNew(SVerticalBox)
+
+                + SVerticalBox::Slot()
+                .AutoHeight()
+                .Padding(0.f,0.f,0.f,1.f)
+                [
+                    SNew(STextBlock)
+                    .Visibility_Lambda([LogInfo] {
+                        if (LogInfo->ShowNetStatusMessage())
+                            return EVisibility::Visible;
+                        return EVisibility::Collapsed;
+                    })
+                    .Text_Lambda([LogInfo] {
+                        return FText::FromString(LogInfo->GetNetStatusMessage());
+                    })
+                    .Font(FSlateFontInfo(Cast<UObject>(MonoFont), 10))
+                ]
+
+                + SVerticalBox::Slot()
+                .AutoHeight()
+                [
+                    SNew(STextBlock)
+                    .Text_Lambda(GetText)
+                    .Font(FSlateFontInfo(Cast<UObject>(MonoFont), 10))
+                ]
            ];
 }

@@ -8,16 +8,16 @@
 
 #include "DT_Settings.h"
 
-UDT_ChainLogger::UDT_ChainLogger(const ELogVerbosity::Type InLogVerbosity, FString&& InFile, const uint64 InLine)
-    : LogVerbosity(InLogVerbosity)
-    , File(InFile)
-    , Line(InLine)
+UDT_ChainLogger::UDT_ChainLogger(FDT_LogMeta&& InMeta)
+    : Meta(MoveTempIfPossible(InMeta))
 {}
 
 UDT_ChainLogger::~UDT_ChainLogger()
 {
     if(const auto Logger = UDT_Logger::Get())
-        Logger->WriteLine(LogVerbosity, MoveTempIfPossible(File), Line, StringBuilder.ToString());
+    {
+        Logger->WriteLine(MoveTempIfPossible(Meta), StringBuilder.ToString());
+    }
 }
 
 UDT_ChainLogger& UDT_ChainLogger::operator<<(const char* Value)
@@ -98,25 +98,43 @@ UDT_Logger::~UDT_Logger()
 {
 }
 
-void UDT_Logger::WriteLine(const ELogVerbosity::Type LogVerbosity, FString&& File, const uint64 Line, FString&& Str)
+void UDT_Logger::WriteLine(FDT_LogMeta&& Meta, FString&& Message)
 {
     auto LogElement = FDT_LogElement();
-    LogElement.Message = MoveTempIfPossible(Str);
-    LogElement.File = MoveTempIfPossible(File);
-    LogElement.Line = Line;
-    LogElement.LogVerbosity = LogVerbosity;
-    if (LogVerbosityWithStackTrace.Contains(LogVerbosity))
+    LogElement.Message = MoveTempIfPossible(Message);
+    LogElement.File = MoveTempIfPossible(Meta.File);
+    LogElement.Line = Meta.Line;
+    LogElement.LogVerbosity = Meta.LogVerbosity;
+
+    if (LogVerbosityWithStackTrace.Contains(LogElement.LogVerbosity))
     {
         LogElement.StackTrace = DT_GET_STACKTRACE();
+    }
+
+    if (Meta.ContextObject)
+    {
+        UWorld* World = GEngine->GetWorldFromContextObject(Meta.ContextObject, EGetWorldErrorMode::ReturnNull);
+        FString Prefix;
+        if (World)
+        {
+            if (World->WorldType == EWorldType::PIE)
+            {
+                LogElement.NetMode = World->GetNetMode();
+                if (LogElement.NetMode == NM_Client)
+                {
+                    LogElement.NetId = GPlayInEditorID;
+                }
+            }
+        }
     }
 
     auto* InsertedLogElement = &LoggerList.emplace_back(MoveTempIfPossible(LogElement));
     OnAddLogDelegate.Broadcast(InsertedLogElement);
 }
 
-void UDT_Logger::Breakpoint(FString&& File, const uint64 Line)
+void UDT_Logger::Breakpoint(FDT_LogMeta&& Meta)
 {
-    WriteLineFormat(ELogVerbosity::Error, MoveTempIfPossible(File), Line, TEXT("BREAKPOINT"));
+    WriteLineFormat(MoveTempIfPossible(Meta), TEXT("BREAKPOINT"));
 }
 
 UDT_Logger::ConstIterator UDT_Logger::begin() const
@@ -129,9 +147,9 @@ UDT_Logger::ConstIterator UDT_Logger::end() const
     return std::rend(LoggerList);
 }
 
-UDT_ChainLogger UDT_Logger::CreateChainLogger(const ELogVerbosity::Type LogVerbosity, FString&& File, const uint64 Line) const
+UDT_ChainLogger UDT_Logger::CreateChainLogger(FDT_LogMeta&& Meta) const
 {
-    return UDT_ChainLogger(LogVerbosity, MoveTempIfPossible(File), Line);
+    return UDT_ChainLogger(MoveTempIfPossible(Meta));
 }
 
 void UDT_Logger::ReloadLogFileFromSettingsClass()
