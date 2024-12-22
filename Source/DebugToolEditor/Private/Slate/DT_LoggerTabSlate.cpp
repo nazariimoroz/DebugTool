@@ -12,6 +12,7 @@
 #include "Widgets/Views/SListView.h"
 #include "Styling/CoreStyle.h"
 #include "Engine/Font.h"
+#include "Slate/SMultiSelectComboBox.h"
 
 void SDT_LoggerTabSlate::Construct(const FArguments& InArgs)
 {
@@ -318,6 +319,8 @@ struct SDT_LoggerTabSlate_LogInfo
         }
 
         FileNameWithLine = FText::FromString(FString::Printf(TEXT("%s(%llu)"), *LogElement->File, LogElement->Line));
+
+		Tag = FText::FromString(LogElement->Tag);
     }
 
     ELogVerbosity::Type GetLogVerbosity() const
@@ -367,6 +370,11 @@ struct SDT_LoggerTabSlate_LogInfo
         return NetStatusMessage;
     }
 
+	const FText& GetTag() const
+    {
+    	return Tag;
+    }
+
 protected:
     const FDT_LogElement* LogElement;
     FText PrimaryLineMessage;
@@ -378,6 +386,7 @@ protected:
 
     FText FileNameWithLine;
     FText NetStatusMessage;
+	FText Tag;
 
 };
 
@@ -467,6 +476,24 @@ TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateLogItemWidget(const FDT_LogEleme
                         .Font(FSlateFontInfo(Cast<UObject>(MonoFont), 10))
                     ]
                 ]
+
+            	// Tag
+				+ SHorizontalBox::Slot().AutoWidth()
+				[
+					SNew(SBox)
+					.WidthOverride(80.f)
+					[
+						SNew(STextBlock)
+						.Visibility_Lambda([LogInfo, this]{
+							if (!bShowTag)
+								return EVisibility::Collapsed;
+
+							return EVisibility::Visible;
+						})
+						.Text_Lambda([LogInfo] { return LogInfo->GetTag(); })
+						.Font(FSlateFontInfo(Cast<UObject>(MonoFont), 10))
+					]
+				]
 
                 // FileName
                 + SHorizontalBox::Slot().AutoWidth()
@@ -604,6 +631,36 @@ TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateMenuContent()
                 ]
             ]
 
+        	// Show tag
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SNew(SHorizontalBox)
+
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(5)
+				[
+					SNew(STextBlock)
+					.Text(FText::FromString("Show tag:"))
+					.Font(FCoreStyle::GetDefaultFontStyle("Regular", 12))
+				]
+
+				+ SHorizontalBox::Slot()
+				.FillWidth(1.f)
+
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(5)
+				[
+					SNew(SCheckBox)
+					.IsChecked(bShowTag)
+					.OnCheckStateChanged_Lambda([this](ECheckBoxState CheckBoxState) {
+						bShowTag = (bool)CheckBoxState;
+					})
+				]
+			]
+
             // Show file name
             + SVerticalBox::Slot()
             .AutoHeight()
@@ -714,6 +771,33 @@ TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateMenuContent()
                 [
                     CreateShowVerbosityCheckBox(ELogVerbosity::Error)
                 ]
+            ]
+
+        	// Show only tags
+            + SVerticalBox::Slot()
+            .AutoHeight()
+            [
+                SNew(SHorizontalBox)
+
+                + SHorizontalBox::Slot()
+                .AutoWidth()
+                .Padding(5)
+                [
+                    SNew(STextBlock)
+                    .Text(FText::FromString("Tags:"))
+                    .Font(FCoreStyle::GetDefaultFontStyle("Regular", 12))
+                ]
+
+
+            	+ SHorizontalBox::Slot()
+				.FillWidth(1.f)
+
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(5)
+	            [
+		            SNew(SMultiSelectComboBox)
+	            ]
             ]
         ];
 }

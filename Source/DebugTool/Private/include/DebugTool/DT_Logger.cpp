@@ -130,6 +130,19 @@ void UDT_Logger::WriteLine(FDT_LogMeta&& Meta, FString&& Message)
 		}
 	}
 
+	if (!LogElement.Message.IsEmpty())
+	{
+		if (LogElement.Message[0] == '#')
+		{
+			int32 Index = 0;
+			if (LogElement.Message.FindChar(' ', Index))
+			{
+				LogElement.Tag = LogElement.Message.Left(Index);
+				LogElement.Message = LogElement.Message.Mid(Index + 1);
+			}
+		}
+	}
+
 	auto* InsertedLogElement = &LoggerList.emplace_back(MoveTempIfPossible(LogElement));
 	OnAddLogDelegate.Broadcast(InsertedLogElement);
 }
@@ -141,12 +154,12 @@ void UDT_Logger::Breakpoint(FDT_LogMeta&& Meta)
 
 UDT_Logger::ConstIterator UDT_Logger::begin() const
 {
-	return std::rbegin(LoggerList);
+	return std::begin(LoggerList);
 }
 
 UDT_Logger::ConstIterator UDT_Logger::end() const
 {
-	return std::rend(LoggerList);
+	return std::end(LoggerList);
 }
 
 UDT_ChainLogger UDT_Logger::CreateChainLogger(FDT_LogMeta&& Meta) const

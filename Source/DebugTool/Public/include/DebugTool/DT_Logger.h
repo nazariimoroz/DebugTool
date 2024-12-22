@@ -255,6 +255,8 @@ struct FDT_LogElement
 	ENetMode NetMode = NM_MAX;
 	/** Will be setted only if NetMode == Client */
 	int32 NetId;
+
+	FString Tag = "#None";
 };
 
 /** Pass as parameter to most Log functions */
@@ -324,7 +326,7 @@ public:
 	FDT_OnAddLogDelegate OnAddLogDelegate;
 
 public:
-	using ConstIterator = std::list<FDT_LogElement>::const_reverse_iterator;
+	using ConstIterator = std::list<FDT_LogElement>::const_iterator;
 
 protected:
 #pragma region Singleton

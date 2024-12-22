@@ -54,6 +54,7 @@ private:
 	UFont* MonoFont;
 
 	bool bShowNetStatus = true;
+	bool bShowTag = false;
 	bool bShowFileName = true;
 
 	TMap<ELogVerbosity::Type, bool> ShownVerbosity;
