@@ -22,6 +22,10 @@ void SDT_LoggerTabSlate::Construct(const FArguments& InArgs)
         return;
     }
 
+    ShownVerbosity.Add(ELogVerbosity::Display, true);
+    ShownVerbosity.Add(ELogVerbosity::Warning, true);
+    ShownVerbosity.Add(ELogVerbosity::Error, true);
+
     ChildSlot
     [
         SNew(SBorder)
@@ -237,18 +241,30 @@ TSharedRef<SWidget> SDT_LoggerTabSlate::MakeBlueSquareButton(const FString& Butt
         .ContentPadding(FMargin(8))
         .HAlign(HAlign_Center)
         .VAlign(VAlign_Center)
-        //.OnClicked(this, &SDT_LoggerTabSlate::OnBlueButtonClicked, ButtonLabel)
-        [
-            SNew(STextBlock)
-            .Text(FText::FromString(ButtonLabel))
-            .Font(FCoreStyle::GetDefaultFontStyle("Bold", 10))
-            .ColorAndOpacity(FLinearColor::White)
-        ];
+            //.OnClicked(this, &SDT_LoggerTabSlate::OnBlueButtonClicked, ButtonLabel)
+            [SNew(STextBlock)
+                 .Text(FText::FromString(ButtonLabel))
+                 .Font(FCoreStyle::GetDefaultFontStyle("Bold", 10))
+                 .ColorAndOpacity(FLinearColor::White)];
+}
+
+FLinearColor SDT_LoggerTabSlate::GetColorForVerbosity(ELogVerbosity::Type Verbosity)
+{
+    switch (Verbosity)
+    {
+        case ELogVerbosity::Log:
+            return FLinearColor(0.f, 0.f, 0.f, 1.f);
+        case ELogVerbosity::Warning:
+            return FLinearColor(0.3f, 0.3f, 0.f, 1.f);
+        case ELogVerbosity::Error:
+            return FLinearColor(0.3f, 0.f, 0.f, 1.f);
+        default:
+            return FLinearColor(0.f, 0.f, 0.f, 0.f);
+    }
 }
 
 struct SDT_LoggerTabSlate_LogInfo
 {
-    const FDT_LogElement* LogElement;
     SDT_LoggerTabSlate_LogInfo(const FDT_LogElement* InLogElement)
         : LogElement(InLogElement)
     {
@@ -304,6 +320,11 @@ struct SDT_LoggerTabSlate_LogInfo
         FileNameWithLine = FText::FromString(FString::Printf(TEXT("%s(%llu)"), *LogElement->File, LogElement->Line));
     }
 
+    ELogVerbosity::Type GetLogVerbosity() const
+    {
+        return LogElement->LogVerbosity;
+    }
+
     bool HaveNL() const
     {
         return bHaveNL;
@@ -347,6 +368,7 @@ struct SDT_LoggerTabSlate_LogInfo
     }
 
 protected:
+    const FDT_LogElement* LogElement;
     FText PrimaryLineMessage;
 
     bool bHaveNL = false;
@@ -402,19 +424,7 @@ TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateLogItemWidget(const FDT_LogEleme
 {
     TSharedPtr<SDT_LoggerTabSlate_LogInfo> LogInfo{new SDT_LoggerTabSlate_LogInfo{&LogElement}};
 
-    const auto Color = ([&LogElement]() {
-        switch (LogElement.LogVerbosity)
-        {
-            case ELogVerbosity::Log:
-                return FLinearColor(0.f, 0.f, 0.f, 1.f);
-            case ELogVerbosity::Warning:
-                return FLinearColor(0.3f, 0.3f, 0.f, 1.f);
-            case ELogVerbosity::Error:
-                return FLinearColor(0.3f, 0.f, 0.f, 1.f);
-            default:
-                return FLinearColor(0.f, 0.f, 0.f, 0.f);
-        }
-    })();
+    const auto Color = GetColorForVerbosity(LogElement.LogVerbosity);
 
     const auto OnClick = [LogInfo] {
         LogInfo->SwitchNL();
@@ -426,6 +436,11 @@ TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateLogItemWidget(const FDT_LogEleme
         .ButtonColorAndOpacity(Color)
         .ContentPadding(FMargin(3))
         .OnClicked_Lambda(OnClick)
+        .Visibility_Lambda([this, LogInfo] {
+            if ( ShownVerbosity[LogInfo->GetLogVerbosity()] )
+                return EVisibility::Visible;
+            return EVisibility::Collapsed;
+        })
         [
             SNew(SVerticalBox)
 
@@ -575,6 +590,9 @@ TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateMenuContent()
                 ]
 
                 + SHorizontalBox::Slot()
+                .FillWidth(1.f)
+
+                + SHorizontalBox::Slot()
                 .AutoWidth()
                 .Padding(5)
                 [
@@ -602,6 +620,9 @@ TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateMenuContent()
                 ]
 
                 + SHorizontalBox::Slot()
+                .FillWidth(1.f)
+
+                + SHorizontalBox::Slot()
                 .AutoWidth()
                 .Padding(5)
                 [
@@ -610,6 +631,88 @@ TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateMenuContent()
                     .OnCheckStateChanged_Lambda([this](ECheckBoxState CheckBoxState) {
                         bShowFileName = (bool)CheckBoxState;
                     })
+                ]
+            ]
+
+            // Collect stacktrace for verbosity
+            + SVerticalBox::Slot()
+            .AutoHeight()
+            [
+                SNew(SHorizontalBox)
+
+                + SHorizontalBox::Slot()
+                .AutoWidth()
+                .Padding(5)
+                [
+                    SNew(STextBlock)
+                    .Text(FText::FromString("Collect stacktrace for:"))
+                    .Font(FCoreStyle::GetDefaultFontStyle("Regular", 12))
+                ]
+
+                + SHorizontalBox::Slot()
+                .FillWidth(1.f)
+
+                // Display
+                + SHorizontalBox::Slot()
+                .AutoWidth()
+                .Padding(5)
+                [
+                    CreateCollectStacktraceForVerbosityCheckBox(ELogVerbosity::Display)
+                ]
+                // Warning
+                + SHorizontalBox::Slot()
+                .AutoWidth()
+                .Padding(5)
+                [
+                    CreateCollectStacktraceForVerbosityCheckBox(ELogVerbosity::Warning)
+                ]
+                // Error
+                + SHorizontalBox::Slot()
+                .AutoWidth()
+                .Padding(5)
+                [
+                    CreateCollectStacktraceForVerbosityCheckBox(ELogVerbosity::Error)
+                ]
+            ]
+
+            // Show log of verbosity
+            + SVerticalBox::Slot()
+            .AutoHeight()
+            [
+                SNew(SHorizontalBox)
+
+                + SHorizontalBox::Slot()
+                .AutoWidth()
+                .Padding(5)
+                [
+                    SNew(STextBlock)
+                    .Text(FText::FromString("Show log of verbosity:"))
+                    .Font(FCoreStyle::GetDefaultFontStyle("Regular", 12))
+                ]
+
+                + SHorizontalBox::Slot()
+                .FillWidth(1.f)
+
+                // Display
+                + SHorizontalBox::Slot()
+                .AutoWidth()
+                .Padding(5)
+                [
+                    CreateShowVerbosityCheckBox(ELogVerbosity::Display)
+                ]
+                // Warning
+                + SHorizontalBox::Slot()
+                .AutoWidth()
+                .Padding(5)
+                [
+                    CreateShowVerbosityCheckBox(ELogVerbosity::Warning)
+                ]
+                // Error
+                + SHorizontalBox::Slot()
+                .AutoWidth()
+                .Padding(5)
+                [
+                    CreateShowVerbosityCheckBox(ELogVerbosity::Error)
                 ]
             ]
         ];
@@ -622,4 +725,53 @@ FReply SDT_LoggerTabSlate::OnOpenMenuClicked()
         MenuAnchor->SetIsOpen(true, true);
     }
     return FReply::Handled();
+}
+
+TSharedRef<SWidget> SDT_LoggerTabSlate::CreateCollectStacktraceForVerbosityCheckBox(ELogVerbosity::Type Verbosity)
+{
+    bool bIsChecked = false;
+    if (const auto Logger = UDT_Logger::Get())
+    {
+        bIsChecked = Logger->IsLogVerbosityWithStackTrace(Verbosity);
+    }
+
+    return SNew(SCheckBox)
+        .IsChecked(bIsChecked)
+        .OnCheckStateChanged_Lambda([Verbosity](ECheckBoxState CheckBoxState) {
+            if (const auto Logger = UDT_Logger::Get())
+            {
+                Logger->UpdateLogVerbosityWithStackTrace(Verbosity, (bool)CheckBoxState);
+            }
+        })
+        .Style(GetCheckBoxStyle(Verbosity));
+}
+
+TSharedRef<SWidget> SDT_LoggerTabSlate::CreateShowVerbosityCheckBox(ELogVerbosity::Type Verbosity)
+{
+    return SNew(SCheckBox)
+        .IsChecked(ShownVerbosity[Verbosity])
+        .OnCheckStateChanged_Lambda([this, Verbosity](ECheckBoxState CheckBoxState) {
+            ShownVerbosity[Verbosity] = !ShownVerbosity[Verbosity];
+        })
+        .Style(GetCheckBoxStyle(Verbosity));
+}
+
+FCheckBoxStyle* SDT_LoggerTabSlate::GetCheckBoxStyle(ELogVerbosity::Type Verbosity)
+{
+    static TMap<ELogVerbosity::Type, FCheckBoxStyle> CheckBoxStyles;
+    if (const auto Style = CheckBoxStyles.Find(Verbosity))
+    {
+        return Style;
+    }
+
+    FCheckBoxStyle NewStyle = FCoreStyle::Get().GetWidgetStyle<FCheckBoxStyle>("Checkbox");
+
+    auto Color = GetColorForVerbosity(Verbosity);
+    Color /= 3.f;
+    Color.A = 1.f;
+    NewStyle.BackgroundImage.TintColor = Color;
+    NewStyle.BackgroundHoveredImage.TintColor = Color;
+    NewStyle.BackgroundPressedImage.TintColor = Color;
+
+    return &CheckBoxStyles.Add(Verbosity, MoveTempIfPossible(NewStyle));
 }

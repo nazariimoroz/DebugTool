@@ -30,6 +30,8 @@ protected:
 
     TSharedRef<SWidget> MakeBlueSquareButton(const FString& ButtonLabel);
 
+    FLinearColor GetColorForVerbosity(ELogVerbosity::Type Verbosity);
+
     void GenerateLoggerListWidget();
     void AddItemToLoggerListWidget(const FDT_LogElement& LogElement);
     TSharedRef<SWidget> GenerateLogItemWidget(const FDT_LogElement& LogElement);
@@ -39,6 +41,9 @@ protected:
 
     TSharedRef<SWidget> GenerateMenuContent();
     FReply OnOpenMenuClicked();
+    TSharedRef<SWidget> CreateCollectStacktraceForVerbosityCheckBox(ELogVerbosity::Type Verbosity);
+    TSharedRef<SWidget> CreateShowVerbosityCheckBox(ELogVerbosity::Type Verbosity);
+    FCheckBoxStyle* GetCheckBoxStyle(ELogVerbosity::Type Verbosity);
 
     TSharedPtr<SMenuAnchor> MenuAnchor;
 
@@ -50,6 +55,8 @@ private:
 
     bool bShowNetStatus = true;
     bool bShowFileName = true;
+
+    TMap<ELogVerbosity::Type, bool> ShownVerbosity;
 
 };
 

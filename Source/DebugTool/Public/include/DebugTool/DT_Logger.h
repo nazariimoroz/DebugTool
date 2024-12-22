@@ -351,8 +351,11 @@ class DEBUGTOOL_API UDT_Logger
 
     void ReloadLogFileFromSettingsClass();
 
+    void UpdateLogVerbosityWithStackTrace(ELogVerbosity::Type Verbosity, bool bEnable);
+    bool IsLogVerbosityWithStackTrace(ELogVerbosity::Type Verbosity);
+
   protected:
     std::list<FDT_LogElement> LoggerList;
 
-    TSet<ELogVerbosity::Type> LogVerbosityWithStackTrace;
+    TMap<ELogVerbosity::Type, bool> LogVerbosityWithStackTrace;
 };

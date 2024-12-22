@@ -79,8 +79,10 @@ UDT_Logger* UDT_Logger::Singleton = nullptr;
 UDT_Logger::UDT_Logger()
 {
     // TODO: Move to settings
-    LogVerbosityWithStackTrace.Add(ELogVerbosity::Error);
-    LogVerbosityWithStackTrace.Add(ELogVerbosity::Warning);
+    LogVerbosityWithStackTrace.Add(ELogVerbosity::Error, true);
+    LogVerbosityWithStackTrace.Add(ELogVerbosity::Warning, true);
+    LogVerbosityWithStackTrace.Add(ELogVerbosity::Display, false);
+
 #if WITH_EDITOR
     ReloadLogFileFromSettingsClass();
 #else
@@ -106,7 +108,7 @@ void UDT_Logger::WriteLine(FDT_LogMeta&& Meta, FString&& Message)
     LogElement.Line = Meta.Line;
     LogElement.LogVerbosity = Meta.LogVerbosity;
 
-    if (LogVerbosityWithStackTrace.Contains(LogElement.LogVerbosity))
+    if (LogVerbosityWithStackTrace[LogElement.LogVerbosity])
     {
         LogElement.StackTrace = DT_GET_STACKTRACE();
     }
@@ -183,5 +185,15 @@ void UDT_Logger::ReloadLogFileFromSettingsClass()
         }
     }
 #endif
+}
+
+void UDT_Logger::UpdateLogVerbosityWithStackTrace(const ELogVerbosity::Type Verbosity, const bool bEnable)
+{
+    LogVerbosityWithStackTrace[Verbosity] = bEnable;
+}
+
+bool UDT_Logger::IsLogVerbosityWithStackTrace(ELogVerbosity::Type Verbosity)
+{
+    return LogVerbosityWithStackTrace[Verbosity];
 }
 
