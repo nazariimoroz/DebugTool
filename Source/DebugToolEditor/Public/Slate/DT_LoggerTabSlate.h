@@ -49,6 +49,7 @@ private:
     UFont* MonoFont;
 
     bool bShowNetStatus = true;
+    bool bShowFileName = true;
 
 };
 

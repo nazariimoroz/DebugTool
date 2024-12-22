@@ -256,131 +256,106 @@ struct SDT_LoggerTabSlate_LogInfo
         {
             case NM_Client:
             {
-                NetStatusMessage = FString::Printf(TEXT("Client %i"), LogElement->NetId);
-                bHaveNetStatus = true;
+                NetStatusMessage = FText::FromString(FString::Printf(TEXT("Client %i"), LogElement->NetId));
                 break;
             }
             case NM_ListenServer:
             case NM_DedicatedServer:
             {
-                NetStatusMessage = "Server";
-                bHaveNetStatus = true;
+                NetStatusMessage = FText::FromString(TEXT("Server"));
                 break;
             }
 
             case NM_Standalone:
+            {
+                NetStatusMessage = FText::FromString(TEXT("Standalone"));
+                break;
+            }
+
             case NM_MAX:
             default:
             {
-                bHaveNetStatus = false;
+                NetStatusMessage = FText::FromString(TEXT("Unknown"));
                 break;
             }
         }
-    }
 
-    FString CurrentMessage;
-
-    bool HaveNL = false;
-    bool OriginMessageHaveNL = false;
-    bool HaveStackTrace = false;
-    bool SettedNL = false;
-    int32 OriginIndexNL = 0;
-    int32 CurrentIndexNL = -1;
-
-    const FString& GetMessage()
-    {
-        if(!CurrentMessage.IsEmpty()) return CurrentMessage;
-
-        FString Message = LogElement->Message;
-
-        if (LogElement->StackTrace)
+        int32 Index = 0;
+        if (LogElement->Message.FindChar('\n', Index))
         {
-            Message += TEXT("\n\n");
-            Message += *LogElement->StackTrace;
-            HaveStackTrace = true;
-        }
-        OriginIndexNL = 0;
-        OriginMessageHaveNL = Message.FindChar('\n', OriginIndexNL);
-        HaveNL = HaveStackTrace || OriginMessageHaveNL;
-
-        if (HaveNL)
-        {
-            Message.RemoveAt(OriginIndexNL, Message.Len() - OriginIndexNL);
-            Message += TEXT(" ...");
-        }
-
-        CurrentMessage = FString::Printf(TEXT("%s(%llu): %s"),
-            *LogElement->File,
-            LogElement->Line,
-            *Message);
-
-        return CurrentMessage;
-    }
-
-    void RemakeMessageWithNL()
-    {
-        if (!HaveNL) return;
-        if (SettedNL) return;
-
-        CurrentMessage.RemoveAt(CurrentMessage.Len() - 4, 4); // Remove " ..."
-        if (OriginMessageHaveNL)
-        {
-            CurrentMessage.Append(LogElement->Message.GetCharArray().GetData() + OriginIndexNL);
-        }
-        if (HaveStackTrace && LogElement->StackTrace)
-        {
-            CurrentMessage += TEXT("\n\n");
-            CurrentMessage += *LogElement->StackTrace;
-        }
-
-        SettedNL = true;
-    }
-
-    void RemakeMessageNoNL()
-    {
-        if (!HaveNL) return;
-        if (!SettedNL) return;
-
-        if (CurrentIndexNL == -1)
-        {
-            CurrentMessage.FindChar('\n', CurrentIndexNL);
-        }
-
-        CurrentMessage.RemoveAt(CurrentIndexNL, CurrentMessage.Len() - CurrentIndexNL);
-        CurrentMessage += TEXT(" ...");
-
-        SettedNL = false;
-    }
-
-    void SwitchNL()
-    {
-        if (!HaveNL) return;
-
-        if (SettedNL)
-        {
-            RemakeMessageNoNL();
+            bHaveNL = true;
+            PrimaryLineMessage = FText::FromString(LogElement->Message.Left(Index));
+            NewLineMessage = FText::FromString(LogElement->Message.Mid(Index + 1));
         }
         else
         {
-            RemakeMessageWithNL();
+            PrimaryLineMessage = FText::FromString(LogElement->Message);
         }
 
-        /** SettedNL will be setted in Remake methods */
+        if (LogElement->StackTrace)
+        {
+            bHaveNL = true;
+
+            auto Result = FString::Printf(TEXT("\n\n%s"), **LogElement->StackTrace);
+            Result.RemoveAt(Result.Len() - 2, 2); // TODO: windows only, make crossplatform
+            NewLineStackTrace = FText::FromString(MoveTempIfPossible(Result));
+        }
+
+        FileNameWithLine = FText::FromString(FString::Printf(TEXT("%s(%llu)"), *LogElement->File, LogElement->Line));
     }
 
-    FString NetStatusMessage;
-    bool bHaveNetStatus = false;
-    bool bShowNetStatusMessage = true;
-
-    bool ShowNetStatusMessage() const
+    bool HaveNL() const
     {
-        return bShowNetStatusMessage && bHaveNetStatus;
+        return bHaveNL;
     }
 
-    const FString& GetNetStatusMessage() const
+    bool OpenedNL() const
+    {
+        return bOpenedNL;
+    }
+    void SwitchNL()
+    {
+        if (HaveNL())
+        {
+            bOpenedNL = !bOpenedNL;
+        }
+    }
+
+    const FText& GetPrimaryLineMessage() const
+    {
+        return PrimaryLineMessage;
+    }
+
+    const TOptional<FText>& GetNewLineMessage() const
+    {
+        return NewLineMessage;
+    }
+
+    const TOptional<FText>& GetNewLineStackTrace() const
+    {
+        return NewLineStackTrace;
+    }
+
+    const FText& GetFileNameWithLine() const
+    {
+        return FileNameWithLine;
+    }
+
+    const FText& GetNetStatusMessage() const
     {
         return NetStatusMessage;
     }
+
+protected:
+    FText PrimaryLineMessage;
+
+    bool bHaveNL = false;
+    bool bOpenedNL = false;
+    TOptional<FText> NewLineMessage;
+    TOptional<FText> NewLineStackTrace;
+
+    FText FileNameWithLine;
+    FText NetStatusMessage;
 
 };
 
@@ -447,8 +422,6 @@ TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateLogItemWidget(const FDT_LogEleme
         return FReply::Handled();
     };
 
-    const auto GetText = [LogInfo] { return FText::FromString(LogInfo->GetMessage()); };
-
     return SNew(SButton)
         .ButtonColorAndOpacity(Color)
         .ContentPadding(FMargin(3))
@@ -456,26 +429,123 @@ TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateLogItemWidget(const FDT_LogEleme
         [
             SNew(SVerticalBox)
 
-            + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f,1.f)
+            // Primary line
+            + SVerticalBox::Slot()
+            .AutoHeight()
             [
-                SNew(STextBlock)
-                .Visibility_Lambda([LogInfo, this]{
-                    if (!bShowNetStatus)
-                        return EVisibility::Collapsed;
+                SNew(SHorizontalBox)
 
-                    if (!LogInfo->ShowNetStatusMessage())
+                // NetStatus
+                + SHorizontalBox::Slot().AutoWidth()
+                [
+                    SNew(SBox)
+                    .WidthOverride(80.f)
+                    [
+                        SNew(STextBlock)
+                        .Visibility_Lambda([LogInfo, this]{
+                            if (!bShowNetStatus)
+                                return EVisibility::Collapsed;
+
+                            return EVisibility::Visible;
+                        })
+                        .Text_Lambda([LogInfo] { return LogInfo->GetNetStatusMessage(); })
+                        .Font(FSlateFontInfo(Cast<UObject>(MonoFont), 10))
+                    ]
+                ]
+
+                // FileName
+                + SHorizontalBox::Slot().AutoWidth()
+                [
+                    SNew(SBox)
+                    [
+                        SNew(STextBlock)
+                        .Visibility_Lambda([LogInfo, this]{
+                            if (!bShowFileName)
+                                return EVisibility::Collapsed;
+
+                            return EVisibility::Visible;
+                        })
+                        .Text_Lambda([LogInfo] { return LogInfo->GetFileNameWithLine(); })
+                        .Font(FSlateFontInfo(Cast<UObject>(MonoFont), 10))
+                    ]
+                ]
+
+                // ": "
+                + SHorizontalBox::Slot().AutoWidth()
+                [
+                    SNew(STextBlock)
+                    .Text(FText::FromString(": "))
+                    .Font(FSlateFontInfo(Cast<UObject>(MonoFont), 10))
+                ]
+
+                // Primary Message
+                + SHorizontalBox::Slot().AutoWidth()
+                [
+                    SNew(STextBlock)
+                    .Text_Lambda([LogInfo] { return LogInfo->GetPrimaryLineMessage(); })
+                    .Font(FSlateFontInfo(Cast<UObject>(MonoFont), 10))
+                ]
+
+                // " ..."
+                + SHorizontalBox::Slot().AutoWidth()
+                [
+                    SNew(STextBlock)
+                    .Visibility_Lambda([LogInfo, this]{
+                        if (LogInfo->OpenedNL())
+                            return EVisibility::Collapsed;
+
+                        if (!LogInfo->HaveNL())
+                            return EVisibility::Collapsed;
+
+                        return EVisibility::Visible;
+                    })
+                    .Text(FText::FromString(" ..."))
+                    .Font(FSlateFontInfo(Cast<UObject>(MonoFont), 10))
+                ]
+            ]
+
+            // New line
+            + SVerticalBox::Slot()
+            .AutoHeight()
+            [
+                SNew(SBox)
+                .Visibility_Lambda([LogInfo]{
+                    if (!LogInfo->OpenedNL())
                         return EVisibility::Collapsed;
 
                     return EVisibility::Visible;
                 })
-                .Text_Lambda([LogInfo] { return FText::FromString(LogInfo->GetNetStatusMessage()); })
-                .Font(FSlateFontInfo(Cast<UObject>(MonoFont), 10))]
+                [
+                    SNew(SVerticalBox)
 
-            + SVerticalBox::Slot().AutoHeight()
-            [
-                SNew(STextBlock)
-                .Text_Lambda(GetText)
-                .Font(FSlateFontInfo(Cast<UObject>(MonoFont), 10))
+                    // New Line Message
+                    + SVerticalBox::Slot().AutoHeight()
+                    [
+                        SNew(STextBlock)
+                        .Visibility_Lambda([LogInfo]{
+                            if (!LogInfo->GetNewLineMessage().IsSet())
+                                return EVisibility::Collapsed;
+
+                            return EVisibility::Visible;
+                        })
+                        .Text_Lambda([LogInfo] { return *LogInfo->GetNewLineMessage(); })
+                        .Font(FSlateFontInfo(Cast<UObject>(MonoFont), 10))
+                    ]
+
+                    // Stack Trace Message
+                    + SVerticalBox::Slot().AutoHeight()
+                    [
+                        SNew(STextBlock)
+                        .Visibility_Lambda([LogInfo]{
+                            if (!LogInfo->GetNewLineStackTrace().IsSet())
+                                return EVisibility::Collapsed;
+
+                            return EVisibility::Visible;
+                        })
+                        .Text_Lambda([LogInfo] { return *LogInfo->GetNewLineStackTrace(); })
+                        .Font(FSlateFontInfo(Cast<UObject>(MonoFont), 10))
+                    ]
+                ]
             ]
         ];
 }
@@ -489,6 +559,7 @@ TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateMenuContent()
         [
             SNew(SVerticalBox)
 
+            // Show net status
             + SVerticalBox::Slot()
             .AutoHeight()
             [
@@ -511,6 +582,33 @@ TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateMenuContent()
                     .IsChecked(bShowNetStatus)
                     .OnCheckStateChanged_Lambda([this](ECheckBoxState CheckBoxState) {
                         bShowNetStatus = (bool)CheckBoxState;
+                    })
+                ]
+            ]
+
+            // Show file name
+            + SVerticalBox::Slot()
+            .AutoHeight()
+            [
+                SNew(SHorizontalBox)
+
+                + SHorizontalBox::Slot()
+                .AutoWidth()
+                .Padding(5)
+                [
+                    SNew(STextBlock)
+                    .Text(FText::FromString("Show file name:"))
+                    .Font(FCoreStyle::GetDefaultFontStyle("Regular", 12))
+                ]
+
+                + SHorizontalBox::Slot()
+                .AutoWidth()
+                .Padding(5)
+                [
+                    SNew(SCheckBox)
+                    .IsChecked(bShowFileName)
+                    .OnCheckStateChanged_Lambda([this](ECheckBoxState CheckBoxState) {
+                        bShowFileName = (bool)CheckBoxState;
                     })
                 ]
             ]
