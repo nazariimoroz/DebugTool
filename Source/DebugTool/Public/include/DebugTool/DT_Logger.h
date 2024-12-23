@@ -22,7 +22,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogDebugTool, All, All)
 	FDT_LogMeta                                              \
 	{                                                        \
 		.File = DT_FORMAT_FILENAME(__FILE__),                \
-		.ContextObject = dynamic_cast<const UObject*>(this), \
+		.ContextObject = this,								 \
 		.Line = __LINE__,                                    \
 		.LogVerbosity = InLogVerbosity                       \
 	}
