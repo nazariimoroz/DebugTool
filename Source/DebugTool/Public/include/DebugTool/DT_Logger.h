@@ -195,50 +195,62 @@ DEFINE_LOG_CATEGORY_STATIC(LogDebugTool, All, All)
 
 #define DT_RETURN(Expression) DT_RETURN_A(Expression, )
 
+#define DT_RETURN_A_BASED(Expression, TO_RET) \
+    do                              \
+    {                               \
+        if (Expression)          \
+        {                           \
+            DT_ERROR("{0}", #Expression); \
+            return TO_RET;                 \
+        }                           \
+    } while (false)
+
+#define DT_RETURN_BASED(Expression) DT_RETURN_A_BASED(Expression, void())
+
 #pragma endregion ReturnMacros
 
 FORCEINLINE FString DT_FORMAT_FILENAME(const TStringView<char>& InFileName)
 {
-	TOptional<int32> BeginPos;
-	TOptional<int32> EndPos;
-	for (int i = InFileName.Len() - 1; i >= 0; --i)
-	{
-		TCHAR Char = InFileName[i];
-		if (!BeginPos && (Char == TEXT('\\') || Char == TEXT('/')))
-		{
-			BeginPos = i + 1;
-		}
-		if (!EndPos && Char == TEXT('.'))
-		{
-			EndPos = i;
-		}
-	}
-	if (!BeginPos)
-		BeginPos = 0;
-	if (!EndPos)
-		return "UNKNOWN";
+    TOptional<int32> BeginPos;
+    TOptional<int32> EndPos;
+    for (int i = InFileName.Len() - 1; i >= 0; --i)
+    {
+        TCHAR Char = InFileName[i];
+        if (!BeginPos && (Char == TEXT('\\') || Char == TEXT('/')))
+        {
+            BeginPos = i + 1;
+        }
+        if (!EndPos && Char == TEXT('.'))
+        {
+            EndPos = i;
+        }
+    }
+    if (!BeginPos)
+        BeginPos = 0;
+    if (!EndPos)
+        return "UNKNOWN";
 
-	const auto BV = BeginPos.GetValue();
-	const auto EV = EndPos.GetValue();
+    const auto BV = BeginPos.GetValue();
+    const auto EV = EndPos.GetValue();
 
-	return FString{ InFileName.Mid(BV, EV - BV) };
+    return FString{InFileName.Mid(BV, EV - BV)};
 }
 
 FORCEINLINE FString DT_GET_STACKTRACE()
 {
-	const SIZE_T StackTraceSize = 65535;
-	ANSICHAR*	 StackTrace = (ANSICHAR*)FMemory::SystemMalloc(StackTraceSize);
+    const SIZE_T StackTraceSize = 65535;
+    ANSICHAR* StackTrace = (ANSICHAR*)FMemory::SystemMalloc(StackTraceSize);
 
-	StackTrace[0] = 0;
-	const int32 NumStackFramesToIgnore = 2;
-	FPlatformStackWalk::StackWalkAndDumpEx(StackTrace, StackTraceSize, NumStackFramesToIgnore,
-		FGenericPlatformStackWalk::EStackWalkFlags::FlagsUsedWhenHandlingEnsure);
+    StackTrace[0] = 0;
+    const int32 NumStackFramesToIgnore = 2;
+    FPlatformStackWalk::StackWalkAndDumpEx(StackTrace, StackTraceSize, NumStackFramesToIgnore,
+        FGenericPlatformStackWalk::EStackWalkFlags::FlagsUsedWhenHandlingEnsure);
 
-	FString ToRet = StackTrace;
+    FString ToRet = StackTrace;
 
-	FMemory::SystemFree(StackTrace);
+    FMemory::SystemFree(StackTrace);
 
-	return ToRet;
+    return ToRet;
 }
 
 class FDebugToolModule;
@@ -246,131 +258,131 @@ class FDebugToolModule;
 /** Will store in std::list in Logger */
 struct FDT_LogElement
 {
-	FString				Message;
-	FString				File;
-	uint64				Line;
-	ELogVerbosity::Type LogVerbosity = ELogVerbosity::Display;
-	TOptional<FString>	StackTrace;
+    FString Message;
+    FString File;
+    uint64 Line;
+    ELogVerbosity::Type LogVerbosity = ELogVerbosity::Display;
+    TOptional<FString> StackTrace;
 
-	ENetMode NetMode = NM_MAX;
-	/** Will be setted only if NetMode == Client */
-	int32 NetId;
+    ENetMode NetMode = NM_MAX;
+    /** Will be setted only if NetMode == Client */
+    int32 NetId;
 
-	FString Tag = "#None";
+    FString Tag = "#None";
 };
 
 /** Pass as parameter to most Log functions */
 struct FDT_LogMeta
 {
-	FString				File;
-	const UObject*		ContextObject = nullptr;
-	uint64				Line;
-	ELogVerbosity::Type LogVerbosity;
+    FString File;
+    const UObject* ContextObject = nullptr;
+    uint64 Line;
+    ELogVerbosity::Type LogVerbosity;
 };
 
 template <class T>
 constexpr auto FTArrayCondition =
-	std::is_arithmetic_v<T> || std::is_base_of_v<UObject, std::remove_pointer_t<T>>
-	|| std::is_same_v<std::remove_reference_t<T>, FString> || std::is_same_v<std::remove_reference_t<T>, FName>
-	|| std::is_same_v<std::remove_reference_t<T>, FText>;
+    std::is_arithmetic_v<T> || std::is_base_of_v<UObject, std::remove_pointer_t<T>>
+    || std::is_same_v<std::remove_reference_t<T>, FString> || std::is_same_v<std::remove_reference_t<T>, FName>
+    || std::is_same_v<std::remove_reference_t<T>, FText>;
 
 class DEBUGTOOL_API UDT_ChainLogger final
 {
 public:
-	UDT_ChainLogger(FDT_LogMeta&& InMeta);
-	~UDT_ChainLogger();
+    UDT_ChainLogger(FDT_LogMeta&& InMeta);
+    ~UDT_ChainLogger();
 
-	UDT_ChainLogger& operator<<(const char* Value);
-	UDT_ChainLogger& operator<<(const wchar_t* Value);
-	UDT_ChainLogger& operator<<(int32 Value);
-	UDT_ChainLogger& operator<<(float Value);
-	UDT_ChainLogger& operator<<(bool Value);
+    UDT_ChainLogger& operator<<(const char* Value);
+    UDT_ChainLogger& operator<<(const wchar_t* Value);
+    UDT_ChainLogger& operator<<(int32 Value);
+    UDT_ChainLogger& operator<<(float Value);
+    UDT_ChainLogger& operator<<(bool Value);
 
-	UDT_ChainLogger& operator<<(const UObject* const Value);
-	UDT_ChainLogger& operator<<(const FString& Value);
-	UDT_ChainLogger& operator<<(const FName& Value);
-	UDT_ChainLogger& operator<<(const FText& Value);
+    UDT_ChainLogger& operator<<(const UObject* const Value);
+    UDT_ChainLogger& operator<<(const FString& Value);
+    UDT_ChainLogger& operator<<(const FName& Value);
+    UDT_ChainLogger& operator<<(const FText& Value);
 
-	template <class T, std::enable_if_t<FTArrayCondition<T>, bool> = true>
-	UDT_ChainLogger& operator<<(const TArray<T>& Array)
-	{
-		StringBuilder.Append("[ ");
+    template <class T, std::enable_if_t<FTArrayCondition<T>, bool>  = true>
+    UDT_ChainLogger& operator<<(const TArray<T>& Array)
+    {
+        StringBuilder.Append("[ ");
 
-		int Index = 0;
-		for (const auto& Value : Array)
-		{
-			operator<<(Value);
+        int Index = 0;
+        for (const auto& Value : Array)
+        {
+            operator<<(Value);
 
-			if (Array.Num() - 1 != Index)
-				StringBuilder.Append(", ");
+            if (Array.Num() - 1 != Index)
+                StringBuilder.Append(", ");
 
-			Index += 1;
-		}
-		StringBuilder.Append(" ]");
-		return *this;
-	}
+            Index += 1;
+        }
+        StringBuilder.Append(" ]");
+        return *this;
+    }
 
 private:
-	FDT_LogMeta&& Meta;
+    FDT_LogMeta&& Meta;
 
-	FStringBuilderBase StringBuilder;
+    FStringBuilderBase StringBuilder;
 };
 
 class DEBUGTOOL_API UDT_Logger
 {
-	friend FDebugToolModule;
+    friend FDebugToolModule;
 
-	DECLARE_MULTICAST_DELEGATE_OneParam(FDT_OnAddLogDelegate, const FDT_LogElement* /*Log Element*/);
-
-public:
-	FDT_OnAddLogDelegate OnAddLogDelegate;
+    DECLARE_MULTICAST_DELEGATE_OneParam(FDT_OnAddLogDelegate, const FDT_LogElement* /*Log Element*/);
 
 public:
-	using ConstIterator = std::list<FDT_LogElement>::const_iterator;
+    FDT_OnAddLogDelegate OnAddLogDelegate;
+
+public:
+    using ConstIterator = std::list<FDT_LogElement>::const_iterator;
 
 protected:
 #pragma region Singleton
-	UDT_Logger();
-	~UDT_Logger();
+    UDT_Logger();
+    ~UDT_Logger();
 
 public:
-	static UDT_Logger* Get()
-	{
-		if (!Singleton)
-			UE_LOG(LogTemp, Error, TEXT("UDT_Logger is not inited"));
-		return Singleton;
-	}
+    static UDT_Logger* Get()
+    {
+        if (!Singleton)
+            UE_LOG(LogTemp, Error, TEXT("UDT_Logger is not inited"));
+        return Singleton;
+    }
 
 protected:
-	static UDT_Logger* Singleton;
+    static UDT_Logger* Singleton;
 
 #pragma endregion
 
 public:
-	void WriteLine(FDT_LogMeta&& Meta, FString&& Message);
+    void WriteLine(FDT_LogMeta&& Meta, FString&& Message);
 
-	template <class... T>
-	void WriteLineFormat(FDT_LogMeta&& Meta, const FStringView& Format, T... Args)
-	{
-		auto Message = FString::Format(Format.GetData(), FStringFormatOrderedArguments{ Args... });
+    template <class... T>
+    void WriteLineFormat(FDT_LogMeta&& Meta, const FStringView& Format, T... Args)
+    {
+        auto Message = FString::Format(Format.GetData(), FStringFormatOrderedArguments{Args...});
 
-		WriteLine(MoveTempIfPossible(Meta), MoveTempIfPossible(Message));
-	}
+        WriteLine(MoveTempIfPossible(Meta), MoveTempIfPossible(Message));
+    }
 
-	void Breakpoint(FDT_LogMeta&& Meta);
+    void Breakpoint(FDT_LogMeta&& Meta);
 
-	ConstIterator begin() const;
-	ConstIterator end() const;
+    ConstIterator begin() const;
+    ConstIterator end() const;
 
-	UDT_ChainLogger CreateChainLogger(FDT_LogMeta&& Meta) const;
+    UDT_ChainLogger CreateChainLogger(FDT_LogMeta&& Meta) const;
 
-	void ReloadLogFileFromSettingsClass();
+    void ReloadLogFileFromSettingsClass();
 
-	void UpdateLogVerbosityWithStackTrace(ELogVerbosity::Type Verbosity, bool bEnable);
-	bool IsLogVerbosityWithStackTrace(ELogVerbosity::Type Verbosity);
+    void UpdateLogVerbosityWithStackTrace(ELogVerbosity::Type Verbosity, bool bEnable);
+    bool IsLogVerbosityWithStackTrace(ELogVerbosity::Type Verbosity);
 
 protected:
-	std::list<FDT_LogElement> LoggerList;
+    std::list<FDT_LogElement> LoggerList;
 
-	TMap<ELogVerbosity::Type, bool> LogVerbosityWithStackTrace;
+    TMap<ELogVerbosity::Type, bool> LogVerbosityWithStackTrace;
 };
