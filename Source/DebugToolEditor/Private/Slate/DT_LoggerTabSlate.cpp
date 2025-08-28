@@ -2,7 +2,7 @@
 
 #include "Slate/DT_LoggerTabSlate.h"
 
-#include "DebugTool/DT_Logger.h"
+#include "DebugTool/DT_LoggerSubsystem.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SEditableTextBox.h"
@@ -14,12 +14,14 @@
 #include "Engine/Font.h"
 #include "Slate/SMultiSelectComboBox.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogLoggerTab, All, All)
+
 void SDT_LoggerTabSlate::Construct(const FArguments& InArgs)
 {
     MonoFont = LoadObject<UFont>(nullptr, TEXT("/DebugTool/UI/Fonts/F_Mono.F_Mono"));
     if (!MonoFont)
     {
-        DT_ERROR_NO_LOGGER("Cant get MonoFont");
+        UE_LOG(LogLoggerTab, Error, TEXT("Cant get MonoFont"));
         return;
     }
 
@@ -269,34 +271,6 @@ struct SDT_LoggerTabSlate_LogInfo
     SDT_LoggerTabSlate_LogInfo(const FDT_LogElement* InLogElement)
         : LogElement(InLogElement)
     {
-        switch (LogElement->NetMode)
-        {
-            case NM_Client:
-            {
-                NetStatusMessage = FText::FromString(FString::Printf(TEXT("Client %i"), LogElement->NetId));
-                break;
-            }
-            case NM_ListenServer:
-            case NM_DedicatedServer:
-            {
-                NetStatusMessage = FText::FromString(TEXT("Server"));
-                break;
-            }
-
-            case NM_Standalone:
-            {
-                NetStatusMessage = FText::FromString(TEXT("Standalone"));
-                break;
-            }
-
-            case NM_MAX:
-            default:
-            {
-                NetStatusMessage = FText::FromString(TEXT("Unknown"));
-                break;
-            }
-        }
-
         int32 Index = 0;
         if (LogElement->Message.FindChar('\n', Index))
         {
@@ -318,7 +292,7 @@ struct SDT_LoggerTabSlate_LogInfo
             NewLineStackTrace = FText::FromString(MoveTempIfPossible(Result));
         }
 
-        FileNameWithLine = FText::FromString(FString::Printf(TEXT("%s(%llu)"), *LogElement->File, LogElement->Line));
+        FileNameWithLine = FText::FromString(FString::Printf(TEXT("%hs(%llu)"), LogElement->File.data(), LogElement->Line));
 
 		Tag = FText::FromString(LogElement->Tag);
     }
@@ -392,10 +366,10 @@ protected:
 
 void SDT_LoggerTabSlate::GenerateLoggerListWidget()
 {
-    const auto Logger = UDT_Logger::Get();
+    const auto Logger = UDT_LoggerSubsystem::Get();
 
-    DT_RETURN_NO_LOGGER(LoggerListBox);
-    DT_RETURN_NO_LOGGER(Logger);
+    if(!LoggerListBox) return;
+    if(!Logger) return;
 
     Logger->OnAddLogDelegate.AddSPLambda(this, [this](const FDT_LogElement* LogElement) {
         float CurrentOffset = ListScrollBox->GetScrollOffset();
@@ -411,7 +385,7 @@ void SDT_LoggerTabSlate::GenerateLoggerListWidget()
         }
     });
 
-    for (const auto& Item : *Logger)
+    for (const auto& Item : Logger->GetLoggerArray())
     {
         AddItemToLoggerListWidget(Item);
     }
@@ -624,7 +598,7 @@ TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateMenuContent()
                 .Padding(5)
                 [
                     SNew(SCheckBox)
-                    .IsChecked(bShowNetStatus)
+                    .IsChecked(bShowNetStatus ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
                     .OnCheckStateChanged_Lambda([this](ECheckBoxState CheckBoxState) {
                         bShowNetStatus = (bool)CheckBoxState;
                     })
@@ -654,7 +628,7 @@ TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateMenuContent()
 				.Padding(5)
 				[
 					SNew(SCheckBox)
-					.IsChecked(bShowTag)
+					.IsChecked(bShowTag ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
 					.OnCheckStateChanged_Lambda([this](ECheckBoxState CheckBoxState) {
 						bShowTag = (bool)CheckBoxState;
 					})
@@ -684,7 +658,7 @@ TSharedRef<SWidget> SDT_LoggerTabSlate::GenerateMenuContent()
                 .Padding(5)
                 [
                     SNew(SCheckBox)
-                    .IsChecked(bShowFileName)
+                    .IsChecked(bShowFileName ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
                     .OnCheckStateChanged_Lambda([this](ECheckBoxState CheckBoxState) {
                         bShowFileName = (bool)CheckBoxState;
                     })
@@ -814,15 +788,15 @@ FReply SDT_LoggerTabSlate::OnOpenMenuClicked()
 TSharedRef<SWidget> SDT_LoggerTabSlate::CreateCollectStacktraceForVerbosityCheckBox(ELogVerbosity::Type Verbosity)
 {
     bool bIsChecked = false;
-    if (const auto Logger = UDT_Logger::Get())
+    if (const auto Logger = UDT_LoggerSubsystem::Get())
     {
         bIsChecked = Logger->IsLogVerbosityWithStackTrace(Verbosity);
     }
 
     return SNew(SCheckBox)
-        .IsChecked(bIsChecked)
+        .IsChecked(bIsChecked ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
         .OnCheckStateChanged_Lambda([Verbosity](ECheckBoxState CheckBoxState) {
-            if (const auto Logger = UDT_Logger::Get())
+            if (const auto Logger = UDT_LoggerSubsystem::Get())
             {
                 Logger->UpdateLogVerbosityWithStackTrace(Verbosity, (bool)CheckBoxState);
             }
@@ -833,7 +807,7 @@ TSharedRef<SWidget> SDT_LoggerTabSlate::CreateCollectStacktraceForVerbosityCheck
 TSharedRef<SWidget> SDT_LoggerTabSlate::CreateShowVerbosityCheckBox(ELogVerbosity::Type Verbosity)
 {
     return SNew(SCheckBox)
-        .IsChecked(ShownVerbosity[Verbosity])
+        .IsChecked(ShownVerbosity[Verbosity] ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
         .OnCheckStateChanged_Lambda([this, Verbosity](ECheckBoxState CheckBoxState) {
             ShownVerbosity[Verbosity] = !ShownVerbosity[Verbosity];
         })

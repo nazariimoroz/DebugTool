@@ -35,15 +35,13 @@ public class DebugTool : ModuleRules
 			{
 				"Projects",
 				"InputCore",
-				//"EditorFramework",
-				//"ToolMenus",
 				"CoreUObject",
 				"Engine",
 				"Slate",
 				"SlateCore",
-				//"Blutility",
 				"UMG",
-				"CommonUI"
+				"CommonUI",
+				"DeveloperSettings"
 			}
 			);
 

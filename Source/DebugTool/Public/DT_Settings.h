@@ -7,7 +7,7 @@
 #include "DT_Settings.generated.h"
 
 UCLASS(config = Editor, defaultconfig)
-class DEBUGTOOL_API UDT_Settings : public UObject
+class DEBUGTOOL_API UDT_Settings : public UDeveloperSettings
 {
     GENERATED_BODY()
 
